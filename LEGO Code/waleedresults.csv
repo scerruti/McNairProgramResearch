@@ -1,0 +1,3 @@
+Model,split,Overall,adjacency,backwards,dependency,height,multi_view,next_step,ordering,outlier,position,rotation,rotation_status
+GeminiFlash2-0,none,0.5418181818181819,0.65,0.57,0.82,0.35,0.48,0.68,0.46,0.45,0.47,0.49,0.54
+GPT4o_MINI,none,0.23272727272727273,0.57,0.17,0.36,0.29,0.17,0.16,0.04,0.14,0.1,0.12,0.44

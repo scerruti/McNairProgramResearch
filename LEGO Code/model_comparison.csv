@@ -1,0 +1,4 @@
+Model,Overall,adjacency,backwards,dependency,height,multi_view,next_step,ordering,outlier,position,rotation,rotation_status
+Gemini-2.0-Flash,54.18%,65.00%,57.00%,82.00%,35.00%,48.00%,68.00%,46.00%,45.00%,47.00%,49.00%,54.00%
+GPT-4o Mini,23.27%,57.00%,17.00%,36.00%,29.00%,17.00%,16.00%,4.00%,14.00%,10.00%,12.00%,44.00%
+VADAR (GPT-4o),11.91%,58.00%,7.00%,0.00%,40.00%,10.00%,0.00%,0.00%,0.00%,0.00%,8.00%,8.00%
