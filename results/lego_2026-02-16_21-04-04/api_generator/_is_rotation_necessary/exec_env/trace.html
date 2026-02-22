@@ -1,0 +1,34 @@
+<p>38: try:</p>
+<p>39: return int(value)</p>
+<p>38: try:</p>
+<p>39: return int(value)</p>
+<p>40: except (ValueError, TypeError):</p>
+<p>41: return value</p>
+<p>28: try:</p>
+<p>29: return enum_klass(value)</p>
+<p>30: except ValueError:</p>
+<p>31: return value</p>
+<p>42: if isinstance(path, bytes):</p>
+<p>27: self.mod_name = mod_name</p>
+<p>28: self.module = types.ModuleType(mod_name)</p>
+<p>29: self._saved_module = []</p>
+<p>32: mod_name = self.mod_name</p>
+<p>33: try:</p>
+<p>34: self._saved_module.append(sys.modules[mod_name])</p>
+<p>35: except KeyError:</p>
+<p>36: pass</p>
+<p>37: sys.modules[mod_name] = self.module</p>
+<p>38: return self</p>
+<p>2: def loc(image, object_prompt):</p>
+<p>7: def vqa(image, question, bbox):</p>
+<p>12: def same_object(image, bbox1, bbox2):</p>
+<p>17: def depth(image, bbox):</p>
+<p>22: def compare_3D_heights(image, bbox1, bbox2):</p>
+<p>27: def get_2D_object_size(image, bbox):</p>
+<p>32: def _compare_height_with_arrows(image, arrow1, arrow2):</p>
+<p>4: return [[25, 25, 50, 50]]</p>
+<p>4: return [[25, 25, 50, 50]]</p>
+<p>14: return False</p>
+<p>4: return [[25, 25, 50, 50]]</p>
+<p>14: return False</p>
+<p>41: if self._saved_module:</p>
