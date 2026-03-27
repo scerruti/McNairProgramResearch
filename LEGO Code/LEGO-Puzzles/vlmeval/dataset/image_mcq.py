@@ -1411,6 +1411,28 @@ class LEGO(ImageMCQDataset):
         return msgs
 
 
+class LEGOLite(LEGO):
+
+    DATASET_URL = {
+        'LEGOLite': LEGO.DATASET_URL['LEGO'],
+        'LEGO': LEGO.DATASET_URL['LEGO'],
+    }
+    DATASET_MD5 = {
+        'LEGOLite': LEGO.DATASET_MD5['LEGO'],
+        'LEGO': LEGO.DATASET_MD5['LEGO'],
+    }
+    LITE_CATEGORIES = ['height', 'position', 'rotation', 'ordering']
+
+    def load_data(self, dataset):
+        data = super().load_data('LEGO')
+        data = data[data['category'].isin(self.LITE_CATEGORIES)].reset_index(drop=True)
+        return data
+
+    @classmethod
+    def supported_datasets(cls):
+        return ['LEGOLite']
+
+
 class VisuLogic(ImageMCQDataset):
     TYPE = "MCQ"
     DATASET_URL = {

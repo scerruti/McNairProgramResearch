@@ -80,6 +80,10 @@ class OpenAIWrapper(BaseAPI):
             env_key = os.environ.get('XAI_API_KEY', '')
             if key is None:
                 key = env_key
+        elif 'fireworks' in model:
+            env_key = os.environ.get('FIREWORKS_API_KEY', '')
+            if key is None:
+                key = env_key
         else:
             if use_azure:
                 env_key = os.environ.get('AZURE_OPENAI_API_KEY', None)
@@ -185,6 +189,7 @@ class OpenAIWrapper(BaseAPI):
         input_msgs = self.prepare_inputs(inputs)
         temperature = kwargs.pop('temperature', self.temperature)
         max_tokens = kwargs.pop('max_tokens', self.max_tokens)
+        kwargs.pop('dataset', None)
 
         # Will send request if use Azure, dk how to use openai client for it
         if self.use_azure:
@@ -207,9 +212,20 @@ class OpenAIWrapper(BaseAPI):
         else:
             payload['max_tokens'] = max_tokens
 
-        response = requests.post(
-            self.api_base,
-            headers=headers, data=json.dumps(payload), timeout=self.timeout * 1.1)
+        import time as _time
+
+        max_429_retries = 10
+        backoff = 15
+        for _attempt in range(max_429_retries):
+            response = requests.post(
+                self.api_base,
+                headers=headers, data=json.dumps(payload), timeout=self.timeout * 1.1)
+            if response.status_code != 429:
+                break
+            wait_secs = backoff * (1.5 ** _attempt)
+            self.logger.warning(f'Rate limited (429). Waiting {wait_secs:.0f}s before retry {_attempt + 1}/{max_429_retries}...')
+            _time.sleep(wait_secs)
+
         ret_code = response.status_code
         ret_code = 0 if (200 <= int(ret_code) < 300) else ret_code
         answer = self.fail_msg

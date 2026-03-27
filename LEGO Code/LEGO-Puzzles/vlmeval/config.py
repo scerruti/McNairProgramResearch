@@ -1295,10 +1295,24 @@ internvl_series = {}
 for group in internvl_groups:
     internvl_series.update(group)
 
+fireworks_models = {
+    "Fireworks_Qwen3-VL-30B": partial(
+        OpenAIWrapper,
+        model="accounts/fireworks/models/qwen3-vl-30b-a3b-instruct",
+        api_base="https://api.fireworks.ai/inference/v1/chat/completions",
+        temperature=0,
+        retry=20,
+        wait=10,
+        img_size=512,
+        img_detail="low",
+        verbose=False,
+    ),
+}
+
 supported_VLM = {}
 
 model_groups = [
-    ungrouped, o1_apis, api_models, xtuner_series, qwen_series, llava_series,
+    ungrouped, o1_apis, api_models, fireworks_models, xtuner_series, qwen_series, llava_series,
     internvl_series, yivl_series, xcomposer_series, minigpt4_series, 
     idefics_series, instructblip_series, deepseekvl_series, deepseekvl2_series, 
     janus_series, minicpm_series, cogvlm_series, wemm_series, cambrian_series, 
