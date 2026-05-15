@@ -40,6 +40,9 @@ LEGO Code/LEGO-Puzzles/outputs/
 LEGO Code/.cache/
 LEGO Code/LEGO-Puzzles/vlmeval.egg-info/
 
+# Reports / logs
+LEGO_Research_Log.md
+
 # IDE
 .vscode/
 .idea/
