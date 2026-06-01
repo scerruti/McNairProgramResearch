@@ -18,4 +18,4 @@ python -m pip install -q transformers>=4.51.0 accelerate pillow pandas tqdm
 python -m pip install -q safetensors
 python -m pip install -q qwen-vl-utils || true
 
-python3 lego_moe_expert_analysis.py
+python3 phase2/lego_moe_expert_analysis.py

@@ -27,13 +27,6 @@ api.key
 *.ckpt
 *.safetensors
 
-# VADAR data & model weights (downloaded at runtime)
-Vadar-Git/data/
-Vadar-Git/UniDepth/
-Vadar-Git/sam2/
-Vadar-Git/GroundingDINO/
-Vadar-Git/results/
-Vadar-Git/models/
 
 # LEGO outputs (regenerated per run)
 LEGO Code/LEGO-Puzzles/outputs/

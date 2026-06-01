@@ -50,7 +50,7 @@ Furthermore, based on LEGO-Puzzzles, we design **image generation tasks** to inv
 
 We further introduce **LEGO-Puzzles-Lite**, a distilled subset tailored for human-model comparison, and a fine-grained evaluation suite named **Next-k-Step** to test reasoning scalability under increasing complexity.
 
-Despite recent advances in multimodal modeling, our experiments reveal that current state-of-the-art MLLMs—while impressive—fall significantly short of human-level spatial reasoning, especially in multi-step and generative tasks.
+Despite recent advances in multimodal modeling, our experiments reveal that current state-of-the-art MLLMs - while impressive - fall significantly short of human-level spatial reasoning, especially in multi-step and generative tasks.
 
 **LEGO-Puzzles aims to establish a rigorous testbed for benchmarking spatial reasoning in MLLMs and to motivate the development of more spatially-aware multimodal systems.**
 

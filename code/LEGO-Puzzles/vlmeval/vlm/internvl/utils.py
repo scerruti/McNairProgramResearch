@@ -124,7 +124,7 @@ def build_mcq_cot_prompt(line, prompt, cot_prompt=None):
             "Answer the preceding multiple choice question. The last line of your response should follow "
             "this format: 'Answer: \\boxed{$LETTER}' (without quotes), where LETTER is one of the options. "
             "If you are uncertain or the problem is too complex, make a reasoned guess based on the "
-            "information provided. Avoid repeating steps indefinitely—provide your best guess even if "
+            "information provided. Avoid repeating steps indefinitely - provide your best guess even if "
             "unsure. Think step by step logically, considering all relevant information before answering."
         )
     prompt = prompt.replace("Answer with the option's letter from the given choices directly.", '').strip()
@@ -139,7 +139,7 @@ def build_qa_cot_prompt(line, prompt, cot_prompt=None):
             "Answer the preceding question. The last line of your response should follow this format: "
             "'Answer: \\boxed{$FINAL_ANSWER}' (without quotes), where 'FINAL_ANSWER' is your conclusion "
             "based on the reasoning provided. If you are uncertain or the problem is too complex, make "
-            "a reasoned guess based on the information provided. Avoid repeating steps indefinitely—"
+            "a reasoned guess based on the information provided. Avoid repeating steps indefinitely - "
             "provide your best guess even if unsure. Think step by step logically, considering all "
             "relevant information before answering."
         )
