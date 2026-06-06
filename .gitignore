@@ -39,3 +39,6 @@ LEGO_Research_Log.md
 # IDE
 .vscode/
 .idea/
+
+# Local dev notes
+.dev_standards.md

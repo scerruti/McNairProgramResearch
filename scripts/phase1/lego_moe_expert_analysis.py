@@ -163,8 +163,8 @@ def save_image_for_row(row):
 
 
 image_path_map = {}
-for i in range(len(df_lite)):
-    row = df_lite.iloc[i]
+for row_idx in range(len(df_lite)):
+    row = df_lite.iloc[row_idx]
     idx = str(row["index"])
     image_path_map[idx] = save_image_for_row(row)
 
@@ -208,8 +208,8 @@ register_hooks()
 results = []
 all_expert_data = {}
 
-for idx in tqdm(range(len(df_lite)), desc="LEGO"):
-    row = df_lite.iloc[idx]
+for row_idx in tqdm(range(len(df_lite)), desc="LEGO"):
+    row = df_lite.iloc[row_idx]
     q_id = str(row["index"])
     category = row["category"]
     answer_gt = str(row["answer"])
@@ -265,8 +265,6 @@ for idx in tqdm(range(len(df_lite)), desc="LEGO"):
 
 remove_hooks()
 
-# ── Results ───────────────────────────────────────────────────────────────────
-
 results_df = pd.DataFrame(results)
 overall_acc = results_df["correct"].mean()
 print(f"\nOverall accuracy: {overall_acc:.1%}")
@@ -275,7 +273,6 @@ for cat in LITE_CATEGORIES:
     if len(cat_df) > 0:
         print(f"  {cat:12s}: {cat_df['correct'].mean():.1%} ({int(cat_df['correct'].sum())}/{len(cat_df)})")
 
-# Category expert summary
 category_expert_freq = defaultdict(Counter)
 for q_id, data in all_expert_data.items():
     freq = {int(k): v for k, v in data["expert_frequency"].items()}
@@ -293,7 +290,6 @@ for cat in LITE_CATEGORIES:
         "unique_experts_used": len(freq),
     }
 
-# Export
 output = {
     "model": MODEL_ID,
     "benchmark": "LEGO",

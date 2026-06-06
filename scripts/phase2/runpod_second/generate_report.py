@@ -68,13 +68,13 @@ with open(RESULTS_JSON) as f:
 df_rank  = pd.read_csv(RANK_CSV)
 df_board = pd.read_csv(BOARD_CSV)
 
-acc = {}
+category_accuracy = {}
 for cat in CATEGORIES:
     sub = [r for r in results if r["category"] == cat]
-    acc[cat] = sum(r["correct"] for r in sub) / len(sub) if sub else 0.0
+    category_accuracy[cat] = sum(r["correct"] for r in sub) / len(sub) if sub else 0.0
 overall_acc = sum(r["correct"] for r in results) / len(results)
 
-cat_heat = {}
+category_heatmaps = {}
 for cat in CATEGORIES:
     arr = np.zeros((NUM_LAYERS, NUM_EXPERTS), dtype=np.float64)
     n   = 0
@@ -84,20 +84,20 @@ for cat in CATEGORIES:
         n += 1
         for li_str, weights in r["visual_routing"].items():
             arr[int(li_str)] += np.asarray(weights)
-    cat_heat[cat] = arr / n if n > 0 else arr
+    category_heatmaps[cat] = arr / n if n > 0 else arr
 
-diff_hr = cat_heat["height"] - cat_heat["rotation"]
+height_rotation_diff = category_heatmaps["height"] - category_heatmaps["rotation"]
 
 # Load run1 for comparison
 print("Loading run1 results for comparison…")
 with open(RUN1_DIR / "results.json") as f:
     results_r1 = json.load(f)
 
-acc_r1 = {}
+category_accuracy_run1 = {}
 for cat in CATEGORIES:
     sub = [r for r in results_r1 if r["category"] == cat]
-    acc_r1[cat] = sum(r["correct"] for r in sub) / len(sub) if sub else 0.0
-overall_r1 = sum(r["correct"] for r in results_r1) / len(results_r1)
+    category_accuracy_run1[cat] = sum(r["correct"] for r in sub) / len(sub) if sub else 0.0
+overall_accuracy_run1 = sum(r["correct"] for r in results_r1) / len(results_r1)
 
 df_board_r1 = pd.read_csv(RUN1_DIR / "spatial_expert_leaderboard.csv")
 df_rank_r1  = pd.read_csv(RUN1_DIR / "expert_success_rates.csv")
@@ -165,9 +165,9 @@ def page_cover(pdf):
         fig.text(x + card_w/2, ys + card_h - 0.025, cat.upper(),
                  ha="center", fontsize=9, fontweight="bold", color=CAT_COLORS[cat])
         fig.text(x + card_w/2, ys + card_h/2 - 0.008,
-                 f"{acc[cat]:.1%}", ha="center",
+                 f"{category_accuracy[cat]:.1%}", ha="center",
                  fontsize=20, fontweight="bold", color=DARK)
-        delta = acc[cat] - acc_r1[cat]
+        delta = category_accuracy[cat] - category_accuracy_run1[cat]
         delta_str = f"{'↑' if delta >= 0 else '↓'}{abs(delta):.1%} vs Run 1"
         delta_color = "#2ecc71" if delta >= 0 else "#e74c3c"
         fig.text(x + card_w/2, ys + 0.015, delta_str,
@@ -185,8 +185,8 @@ def page_cover(pdf):
         f"• {NUM_LAYERS} MoE layers × {NUM_EXPERTS} experts × Top-8 routing analysed",
         "• 400 LEGOLite questions (100 per spatial category)",
         "• Router activations captured for visual tokens only",
-        f"• Run 1 overall: {overall_r1:.1%}  |  Run 2 overall: {overall_acc:.1%}",
-        f"• Δ overall: {overall_acc - overall_r1:+.1%}",
+        f"• Run 1 overall: {overall_accuracy_run1:.1%}  |  Run 2 overall: {overall_acc:.1%}",
+        f"• Δ overall: {overall_acc - overall_accuracy_run1:+.1%}",
         "• See page 9 for full Run 1 vs Run 2 comparison",
     ]
     fig.text(0.07, 0.415, "Key Findings", fontsize=11, fontweight="bold", color=DARK)
@@ -215,7 +215,7 @@ def page_accuracy(pdf):
 
     ax_acc = fig.add_subplot(gs[0, :])
     cats   = CATEGORIES + ["overall"]
-    vals   = [acc[c] for c in CATEGORIES] + [overall_acc]
+    vals   = [category_accuracy[c] for c in CATEGORIES] + [overall_acc]
     colors = [CAT_COLORS[c] for c in CATEGORIES] + [DARK]
     bars   = ax_acc.bar(cats, vals, color=colors, width=0.55, zorder=3)
     ax_acc.set_ylim(0, 0.55)
@@ -233,7 +233,7 @@ def page_accuracy(pdf):
     for i, cat in enumerate(CATEGORIES):
         row, col = divmod(i, 2)
         ax = fig.add_subplot(gs[row + 1, col])
-        layer_means = cat_heat[cat].mean(axis=1)
+        layer_means = category_heatmaps[cat].mean(axis=1)
         ax.fill_between(range(NUM_LAYERS), layer_means,
                         color=CAT_COLORS[cat], alpha=0.35)
         ax.plot(range(NUM_LAYERS), layer_means,
@@ -374,26 +374,26 @@ def page_ordering(pdf):
 # ─────────────────────────────────────────────────────────────────────────────
 
 def page_heatmaps(pdf):
-    global_mean = sum(cat_heat[c] for c in CATEGORIES) / len(CATEGORIES)
-    top32 = np.argsort(global_mean.mean(axis=0))[-32:][::-1]
-    top32_labels = [f"E{e}" for e in top32]
+    global_mean = sum(category_heatmaps[c] for c in CATEGORIES) / len(CATEGORIES)
+    top_32_expert_indices = np.argsort(global_mean.mean(axis=0))[-32:][::-1]
+    top_32_expert_labels = [f"E{e}" for e in top_32_expert_indices]
 
     fig, axes = plt.subplots(2, 2, figsize=(8.5, 11))
     fig.suptitle("Visual Token Expert Activation Heatmaps - Run 2\n"
                  "(Layer × Top-32 most active experts; colour = mean routing weight)",
                  fontsize=12, fontweight="bold", y=0.98)
 
-    vmax = max(cat_heat[c][:, top32].max() for c in CATEGORIES)
+    vmax = max(category_heatmaps[c][:, top_32_expert_indices].max() for c in CATEGORIES)
 
     for ax, cat in zip(axes.flat, CATEGORIES):
-        data = cat_heat[cat][:, top32]
+        data = category_heatmaps[cat][:, top_32_expert_indices]
         sns.heatmap(data, ax=ax, cmap="YlOrRd",
                     vmin=0, vmax=vmax,
-                    xticklabels=top32_labels,
+                    xticklabels=top_32_expert_labels,
                     yticklabels=[str(l) if l % 8 == 0 else "" for l in range(NUM_LAYERS)],
                     linewidths=0, cbar=True,
                     cbar_kws={"shrink": 0.6, "label": "Mean routing weight"})
-        ax.set_title(f"{cat.upper()}  (acc={acc[cat]:.1%})",
+        ax.set_title(f"{cat.upper()}  (acc={category_accuracy[cat]:.1%})",
                      color=CAT_COLORS[cat], fontweight="bold")
         ax.set_xlabel("Expert ID (top-32 by global mean activation)", fontsize=7)
         ax.set_ylabel("Layer index (0 = earliest, 47 = latest)", fontsize=7)
@@ -411,19 +411,19 @@ def page_heatmaps(pdf):
 # ─────────────────────────────────────────────────────────────────────────────
 
 def page_diff_heatmap(pdf):
-    global_mean = sum(cat_heat[c] for c in CATEGORIES) / len(CATEGORIES)
-    top48 = np.argsort(global_mean.mean(axis=0))[-48:][::-1]
-    top48_labels = [f"E{e}" for e in top48]
+    global_mean = sum(category_heatmaps[c] for c in CATEGORIES) / len(CATEGORIES)
+    top_48_expert_indices = np.argsort(global_mean.mean(axis=0))[-48:][::-1]
+    top_48_expert_labels = [f"E{e}" for e in top_48_expert_indices]
 
     fig, axes = plt.subplots(1, 2, figsize=(8.5, 11))
     page_header(fig, "Height vs Rotation - Expert Specialisation",
                 "Blue = Height-preferring  |  Red = Rotation-preferring  |  White = shared")
 
-    vabs = np.abs(diff_hr[:, top48]).max()
+    vabs = np.abs(height_rotation_diff[:, top_48_expert_indices]).max()
 
-    sns.heatmap(diff_hr[:, top48], ax=axes[0], cmap="coolwarm",
+    sns.heatmap(height_rotation_diff[:, top_48_expert_indices], ax=axes[0], cmap="coolwarm",
                 vmin=-vabs, vmax=vabs,
-                xticklabels=top48_labels,
+                xticklabels=top_48_expert_labels,
                 yticklabels=[str(l) if l % 8 == 0 else "" for l in range(NUM_LAYERS)],
                 linewidths=0, cbar=True,
                 cbar_kws={"shrink": 0.5, "label": "Height routing − Rotation routing"})
@@ -433,14 +433,14 @@ def page_diff_heatmap(pdf):
     axes[0].tick_params(axis="x", labelsize=5, rotation=90)
     axes[0].tick_params(axis="y", labelsize=6)
 
-    diff_by_expert = diff_hr.mean(axis=0)
-    height_top5 = np.argsort(diff_by_expert)[-5:][::-1]
-    rotat_top5  = np.argsort(diff_by_expert)[:5]
+    diff_by_expert = height_rotation_diff.mean(axis=0)
+    height_top_5_experts = np.argsort(diff_by_expert)[-5:][::-1]
+    rotation_top_5_experts  = np.argsort(diff_by_expert)[:5]
 
-    labels = ([f"E{e}\n(H)" for e in height_top5] +
-              [f"E{e}\n(R)" for e in rotat_top5])
-    vals   = (list(diff_by_expert[height_top5]) +
-              list(diff_by_expert[rotat_top5]))
+    labels = ([f"E{e}\n(H)" for e in height_top_5_experts] +
+              [f"E{e}\n(R)" for e in rotation_top_5_experts])
+    vals   = (list(diff_by_expert[height_top_5_experts]) +
+              list(diff_by_expert[rotation_top_5_experts]))
     colors = ["#4C72B0"] * 5 + ["#C44E52"] * 5
 
     axes[1].barh(labels[::-1], vals[::-1], color=colors[::-1], height=0.6)
@@ -515,8 +515,8 @@ def page_comparison(pdf):
     ax_bar = fig.add_subplot(gs[0, :])
     x      = np.arange(len(CATEGORIES) + 1)
     cats_w_overall = CATEGORIES + ["overall"]
-    r1_vals = [acc_r1[c] for c in CATEGORIES] + [overall_r1]
-    r2_vals = [acc[c]    for c in CATEGORIES] + [overall_acc]
+    r1_vals = [category_accuracy_run1[c] for c in CATEGORIES] + [overall_accuracy_run1]
+    r2_vals = [category_accuracy[c]    for c in CATEGORIES] + [overall_acc]
     w = 0.35
     bars1 = ax_bar.bar(x - w/2, r1_vals, w, label="Run 1", color="#7FB3D3",
                        edgecolor="white", zorder=3)
@@ -541,7 +541,7 @@ def page_comparison(pdf):
 
     # ── Delta bar: run2 - run1 per category ──────────────────────────────────
     ax_delta = fig.add_subplot(gs[1, :])
-    deltas = [acc[c] - acc_r1[c] for c in CATEGORIES] + [overall_acc - overall_r1]
+    deltas = [category_accuracy[c] - category_accuracy_run1[c] for c in CATEGORIES] + [overall_acc - overall_accuracy_run1]
     colors_delta = ["#2ecc71" if d >= 0 else "#e74c3c" for d in deltas]
     bars_d = ax_delta.bar(x, deltas, 0.55, color=colors_delta, edgecolor="white", zorder=3)
     ax_delta.axhline(0, color=DARK, linewidth=1)
