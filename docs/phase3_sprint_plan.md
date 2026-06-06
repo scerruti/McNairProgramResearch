@@ -7,7 +7,7 @@
 | **Phase** | 3 |
 | **Model** | Qwen3-VL-30B-A3B-Instruct |
 | **Benchmark** | LEGOLite (400 questions, 4 categories) |
-| **Goal** | Identify layers that correlate most strongly with wrong answers, cluster questions by those bad-layer activation patterns, disable the worst layers, and re-run to see if accuracy improves |
+| **Goal** | Identify layers that correlate most strongly with wrong answers, cluster questions by those bad-layer binary expert activation patterns, disable the worst layers, and re-run to see if accuracy improves |
 
 ---
 
@@ -18,8 +18,10 @@ Phases 1 and 2 gave us per-question expert activation data across all 48 layers,
 The plan is three stages:
 
 1. **Score each layer by how bad it is** - compute a "wrongness score" per layer based on how strongly its activation correlates with incorrect answers.
-2. **Cluster questions by their bad-layer profiles** - run K-means using only the worst-N layers as features, so clusters represent "ways of being wrong."
-3. **Ablate the worst layers and re-run** - zero out / skip the top-K worst layers during inference and measure whether accuracy goes up.
+2. **Cluster questions by their bad-layer expert patterns** - for each of the top-K bad layers, represent each question as a binary vector of which experts fired (1) vs did not (0). Run K-means on these vectors so clusters represent distinct "failure modes."
+3. **Ablate the worst layers and re-run** - zero out the top-K worst layers during inference and measure whether accuracy improves.
+
+We use **200 questions** for the test run and hold out the other 200 to validate any findings.
 
 **Source data:** `data/phase2/runpod_second/results.json` (400 questions, all valid)
 
@@ -29,52 +31,68 @@ The plan is three stages:
 
 ## Sprint Tasks
 
-### Step 1 - Verify the Data
+### Step 1 - Verify and Split the Data
+
 - [x] Confirm Phase 2 Run 2 has all 400 questions with valid expert activation data
-- [ ] Confirm each record has both `expert_activations` (per-layer) and a correct/incorrect label
-- [ ] Load and inspect the data - count correct vs incorrect per category
+- [ ] Confirm each record has both `expert_activations` (per-layer, per-expert) and a correct/incorrect label
+- [ ] Split the 400 questions into two halves of 200 each - stratify by category so each half has ~50 per category
+- [ ] Save `test_200.json` and `holdout_200.json` - all clustering and ablation work runs on the test half first
 
 ---
 
 ### Step 2 - Score Layers by "Badness"
 
-For each of the 48 layers, compute a wrongness score that measures how much that layer's activation level predicts an incorrect answer.
+Using the 200 test questions and the same binary expert data we use in Step 3, compute a single wrongness score per layer:
 
-| Method | Description |
-|--------|-------------|
-| **Mean activation delta** | `mean(activation[wrong]) - mean(activation[correct])` - positive = layer is more active on wrong answers |
-| **Point-biserial correlation** | Correlation between layer activation magnitude and the binary wrong/correct label |
-| **Wrong-answer weight** | Fraction of total wrong-question activation that falls in this layer |
+For each expert in a layer, compute its **wrong-answer rate**: the fraction of times it fired where the answer was wrong.
 
-Rank all 48 layers by these scores. The top layers are the **bad layers**.
+```
+wrong_rate(expert j, layer i) = count(fired AND wrong) / count(fired)
+```
 
-- [ ] Write a script to compute all three scores per layer
-- [ ] Output a ranked table: layer index, wrongness scores, category breakdown
-- [ ] Plot a bar chart of per-layer wrongness scores so the worst layers are visually obvious
-- [ ] Choose a cutoff: select the top-K bad layers (start with K=5, K=10, compare)
+Score the layer by averaging this rate across all its experts:
 
----
+```
+layer_score(i) = mean over j of wrong_rate(expert j, layer i)
+```
 
-### Step 3 - Build the Bad-Layer Feature Matrix
+A score above 0.5 means that layer's experts, on average, fire more often on wrong answers than correct ones. Rank all 48 layers by this score. The top layers are the **bad layers**.
 
-Rather than using all 48 layers as features (which buries the bad-layer signal), we build a feature matrix using only the bad layers identified in Step 2.
-
-- [ ] For each of the 400 questions, extract activation values for the top-K bad layers only
-- [ ] Resulting matrix: 400 rows × K columns
-- [ ] Normalize each column (z-score) so no single layer dominates by scale
-- [ ] Save the matrix to a file for use on RunPod
+- [ ] Write a script to compute per-expert wrong-answer rates and average them per layer
+- [ ] Output a ranked table: layer index, layer score, number of experts with rate > 0.5
+- [ ] Plot a bar chart of all 48 layer scores so the worst layers are visually obvious
+- [ ] Select the single worst layer for the first test run, then compare K=3, K=5
 
 ---
 
-### Step 4 - Run K-Means on Bad-Layer Profiles
+### Step 3 - Build the Binary Expert Activation Feature Matrix
 
-- [ ] Run K-means with K=2, 4, 6, 8 clusters on the bad-layer feature matrix
+For each question, record which experts fired (1) vs did not (0) in each bad layer. This gives a binary vector that captures the exact routing pathway the model took, not just how active it was.
+
+**Dimensions:**
+- Each bad layer has N = 200 experts
+- One bad layer = **200-dim binary vector** per question
+- K bad layers concatenated = **K * 200 dims** per question
+- Start with K=1 (the single worst layer) for the first test run - 200 dims is enough for K-means to find structure with 200 questions
+
+**Feature matrix shape:** `(200 questions, K * 200 experts)`
+
+- [ ] For each of the 200 test questions, extract the binary expert activation vector for the worst layer (K=1)
+- [ ] Verify each row sums to the model's top-K routing count (should be constant - a sanity check)
+- [ ] If K=1 clustering is weak, concatenate the next worst layer and re-run (K=2 gives 400 dims)
+- [ ] Save the feature matrix for use on RunPod
+
+---
+
+### Step 4 - Run K-Means on Binary Expert Profiles
+
+- [ ] Run K-means with K=2, 4, 6, 8 clusters on the binary feature matrix
 - [ ] Use elbow plot + silhouette scores to find the natural number of "failure modes"
 - [ ] For each cluster, record:
   - Accuracy (what fraction were answered correctly)
   - Category mix (which question types dominate)
-  - Which bad layers are most active in that cluster
-- [ ] A cluster that is almost entirely wrong answers = a clean failure mode driven by specific bad layers
+  - Which experts in which bad layers are most consistently activated in that cluster
+- [ ] A cluster that is almost entirely wrong answers = a clean failure mode driven by specific expert routing in specific layers
 
 ---
 
@@ -90,7 +108,7 @@ K-means does not need a GPU. Use a CPU instance.
 
 ### Step 6 - Ablation Run (Turn Off the Worst Layers)
 
-This is the key experiment: disable the top-K worst layers during inference and re-run the benchmark.
+This is the key experiment: disable the top-K worst layers during inference and re-run on the 200 test questions.
 
 **How to ablate a layer in a MoE model:**
 - Zero out the MLP/expert output for that layer (pass residual stream through unchanged)
@@ -110,6 +128,7 @@ This is the key experiment: disable the top-K worst layers during inference and 
 - [ ] Check if ablating bad layers helps more for specific categories (e.g., rotation gets better, height stays same)
 - [ ] Look at which clusters from Step 4 shrink or disappear after ablation (fewer wrong-answer clusters = good)
 - [ ] Plot the clusters before and after ablation on a 2D PCA chart, colored by correct/incorrect
+- [ ] Validate the best ablation config on the holdout 200 to confirm the finding generalizes
 - [ ] Write up the main finding: which layers hurt the model and by how much?
 
 ---
@@ -121,3 +140,5 @@ This is the key experiment: disable the top-K worst layers during inference and 
 > **How many layers to ablate:** Ablating too many layers will hurt accuracy regardless. Start conservative (K=1, 3, 5) and stop if accuracy starts dropping below baseline.
 
 > **Layer zeroing vs routing change:** Zeroing the MLP output is the cleanest ablation. Changing router logits risks side effects. Try zeroing first.
+
+> **Sparse binary vectors:** With ~200 experts per layer but only top-K routing active per question, each row of the feature matrix is very sparse (mostly 0s). K-means handles this fine but cosine distance may outperform Euclidean - worth comparing both.
