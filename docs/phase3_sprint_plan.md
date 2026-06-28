@@ -56,11 +56,11 @@ Take the 400 questions and split them into two equal groups of 200:
 
 Split by stratified sampling so each half has roughly 50 questions per category.
 
-- [ ] Confirm Phase 2 data has routing weights and a correct/incorrect label for all 400 questions
-- [ ] Confirm each question has `visual_routing`: a dict of layer index -> list of 128 floats
-- [ ] Split into `test_200.json` and `holdout_200.json`, balanced by category
-- [ ] Quick check: print category counts for each split to confirm balance
-- [ ] Compute and record the base error rate for the 200 test questions (total wrong / 200)
+- [X] Confirm Phase 2 data has routing weights and a correct/incorrect label for all 400 questions
+- [X] Confirm each question has `visual_routing`: a dict of layer index -> list of 128 floats
+- [X] Split into `test_200.json` and `holdout_200.json`, balanced by category
+- [X] Quick check: print category counts for each split to confirm balance
+- [X] Compute and record the base error rate for the 200 test questions (total wrong / 200)
 
 ---
 

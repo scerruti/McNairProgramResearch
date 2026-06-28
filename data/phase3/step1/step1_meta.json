@@ -1,0 +1,8 @@
+{
+  "random_seed": 42,
+  "source_data_path": "/Users/waleed/CSE 199/data/phase2/runpod_second/results.json",
+  "test_question_count": 200,
+  "holdout_question_count": 200,
+  "test_base_error_rate": 0.765,
+  "holdout_error_rate": 0.73
+}
