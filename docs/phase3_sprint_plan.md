@@ -56,11 +56,11 @@ Take the 400 questions and split them into two equal groups of 200:
 
 Split by stratified sampling so each half has roughly 50 questions per category.
 
-- [X] Confirm Phase 2 data has routing weights and a correct/incorrect label for all 400 questions
-- [X] Confirm each question has `visual_routing`: a dict of layer index -> list of 128 floats
-- [X] Split into `test_200.json` and `holdout_200.json`, balanced by category
-- [X] Quick check: print category counts for each split to confirm balance
-- [X] Compute and record the base error rate for the 200 test questions (total wrong / 200)
+- [x] Confirm Phase 2 data has routing weights and a correct/incorrect label for all 400 questions
+- [x] Confirm each question has `visual_routing`: a dict of layer index -> list of 128 floats
+- [x] Split into `test_200.json` and `holdout_200.json`, balanced by category
+- [x] Quick check: print category counts for each split to confirm balance
+- [x] Compute and record the base error rate for the 200 test questions (total wrong / 200)
 
 ---
 
@@ -82,11 +82,11 @@ Where `n` is the number of questions the expert activated on, `base_error_rate` 
 
 Average the z-scores across all 128 experts in each layer. A positive layer z-score means the layer's experts lean toward wrong answers more than chance predicts.
 
-- [ ] Write a script to binarize routing data: top-8 per question per layer = 1, rest = 0
-- [ ] Compute z-score per expert per layer, then average per layer
-- [ ] Print a ranked table of all 48 layers: layer number, average z-score, and number of experts with z > 2
-- [ ] Plot a bar chart of all 48 layer z-scores to see which layers stand out
-- [ ] Pick the single worst layer to use first, then plan to try the top 3 and top 5
+- [x] Write a script to binarize routing data: top-8 per question per layer = 1, rest = 0
+- [x] Compute z-score per expert per layer, then average per layer
+- [x] Print a ranked table of all 48 layers: layer number, average z-score, and number of experts with z > 2
+- [x] Plot a bar chart of all 48 layer z-scores to see which layers stand out
+- [x] Pick the single worst layer to use first, then plan to try the top 3 and top 5
 
 ---
 
