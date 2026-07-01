@@ -1,0 +1,234 @@
+{
+  "layer_index": 7,
+  "active_expert_count": 22,
+  "active_expert_indices": [
+    5,
+    12,
+    14,
+    20,
+    21,
+    26,
+    31,
+    33,
+    48,
+    49,
+    51,
+    58,
+    60,
+    69,
+    73,
+    81,
+    88,
+    93,
+    96,
+    106,
+    110,
+    111
+  ],
+  "best_k": 2,
+  "best_silhouette": 0.1013,
+  "bad_expert_indices": [
+    14,
+    20,
+    31,
+    33,
+    58,
+    60,
+    69,
+    81,
+    93,
+    96,
+    106,
+    111
+  ],
+  "all_k_results": {
+    "2": {
+      "silhouette": 0.1013,
+      "medoid_expert_indices": [
+        110,
+        20
+      ],
+      "cluster_stats": [
+        {
+          "expert_count": 10,
+          "total_activations": 1241,
+          "wrong_activations": 947,
+          "wrong_rate": 0.7631,
+          "above_baseline": false
+        },
+        {
+          "expert_count": 12,
+          "total_activations": 359,
+          "wrong_activations": 277,
+          "wrong_rate": 0.7716,
+          "above_baseline": true
+        }
+      ]
+    },
+    "4": {
+      "silhouette": 0.0217,
+      "medoid_expert_indices": [
+        110,
+        20,
+        14,
+        48
+      ],
+      "cluster_stats": [
+        {
+          "expert_count": 8,
+          "total_activations": 1009,
+          "wrong_activations": 770,
+          "wrong_rate": 0.7631,
+          "above_baseline": false
+        },
+        {
+          "expert_count": 4,
+          "total_activations": 297,
+          "wrong_activations": 227,
+          "wrong_rate": 0.7643,
+          "above_baseline": false
+        },
+        {
+          "expert_count": 2,
+          "total_activations": 7,
+          "wrong_activations": 7,
+          "wrong_rate": 1.0,
+          "above_baseline": true
+        },
+        {
+          "expert_count": 8,
+          "total_activations": 287,
+          "wrong_activations": 220,
+          "wrong_rate": 0.7666,
+          "above_baseline": true
+        }
+      ]
+    },
+    "6": {
+      "silhouette": 0.0211,
+      "medoid_expert_indices": [
+        110,
+        20,
+        14,
+        48,
+        33,
+        93
+      ],
+      "cluster_stats": [
+        {
+          "expert_count": 7,
+          "total_activations": 1000,
+          "wrong_activations": 761,
+          "wrong_rate": 0.761,
+          "above_baseline": false
+        },
+        {
+          "expert_count": 3,
+          "total_activations": 284,
+          "wrong_activations": 218,
+          "wrong_rate": 0.7676,
+          "above_baseline": true
+        },
+        {
+          "expert_count": 2,
+          "total_activations": 7,
+          "wrong_activations": 7,
+          "wrong_rate": 1.0,
+          "above_baseline": true
+        },
+        {
+          "expert_count": 5,
+          "total_activations": 249,
+          "wrong_activations": 188,
+          "wrong_rate": 0.755,
+          "above_baseline": false
+        },
+        {
+          "expert_count": 2,
+          "total_activations": 32,
+          "wrong_activations": 26,
+          "wrong_rate": 0.8125,
+          "above_baseline": true
+        },
+        {
+          "expert_count": 3,
+          "total_activations": 28,
+          "wrong_activations": 24,
+          "wrong_rate": 0.8571,
+          "above_baseline": true
+        }
+      ]
+    },
+    "8": {
+      "silhouette": -0.0988,
+      "medoid_expert_indices": [
+        110,
+        20,
+        14,
+        48,
+        33,
+        93,
+        21,
+        58
+      ],
+      "cluster_stats": [
+        {
+          "expert_count": 6,
+          "total_activations": 821,
+          "wrong_activations": 624,
+          "wrong_rate": 0.76,
+          "above_baseline": false
+        },
+        {
+          "expert_count": 2,
+          "total_activations": 283,
+          "wrong_activations": 217,
+          "wrong_rate": 0.7668,
+          "above_baseline": true
+        },
+        {
+          "expert_count": 2,
+          "total_activations": 7,
+          "wrong_activations": 7,
+          "wrong_rate": 1.0,
+          "above_baseline": true
+        },
+        {
+          "expert_count": 4,
+          "total_activations": 246,
+          "wrong_activations": 187,
+          "wrong_rate": 0.7602,
+          "above_baseline": false
+        },
+        {
+          "expert_count": 1,
+          "total_activations": 31,
+          "wrong_activations": 25,
+          "wrong_rate": 0.8065,
+          "above_baseline": true
+        },
+        {
+          "expert_count": 3,
+          "total_activations": 28,
+          "wrong_activations": 24,
+          "wrong_rate": 0.8571,
+          "above_baseline": true
+        },
+        {
+          "expert_count": 3,
+          "total_activations": 183,
+          "wrong_activations": 139,
+          "wrong_rate": 0.7596,
+          "above_baseline": false
+        },
+        {
+          "expert_count": 1,
+          "total_activations": 1,
+          "wrong_activations": 1,
+          "wrong_rate": 1.0,
+          "above_baseline": true
+        }
+      ]
+    }
+  }
+}

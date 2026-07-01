@@ -1,0 +1,94 @@
+{
+  "layers": [
+    {
+      "layer_index": 41,
+      "best_k": 8,
+      "best_silhouette": 0.1468,
+      "bad_expert_indices": [
+        55,
+        59,
+        80,
+        86,
+        122,
+        24,
+        96,
+        40,
+        113,
+        0,
+        9,
+        20,
+        56,
+        63,
+        65,
+        74,
+        76,
+        88,
+        95,
+        97,
+        102,
+        106,
+        119,
+        121
+      ]
+    },
+    {
+      "layer_index": 42,
+      "best_k": 4,
+      "best_silhouette": 0.2359,
+      "bad_expert_indices": [
+        2,
+        16,
+        22,
+        49,
+        75,
+        90,
+        93,
+        101,
+        121,
+        126,
+        87,
+        118,
+        122,
+        0
+      ]
+    },
+    {
+      "layer_index": 43,
+      "best_k": 2,
+      "best_silhouette": 0.0694,
+      "bad_expert_indices": [
+        8,
+        87,
+        117,
+        121
+      ]
+    },
+    {
+      "layer_index": 19,
+      "best_k": 2,
+      "best_silhouette": 0.0726,
+      "bad_expert_indices": [
+        11
+      ]
+    },
+    {
+      "layer_index": 7,
+      "best_k": 2,
+      "best_silhouette": 0.1013,
+      "bad_expert_indices": [
+        14,
+        20,
+        31,
+        33,
+        58,
+        60,
+        69,
+        81,
+        93,
+        96,
+        106,
+        111
+      ]
+    }
+  ]
+}

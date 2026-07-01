@@ -1,0 +1,75 @@
+{
+  "layers_processed": [
+    41,
+    42,
+    43,
+    19,
+    7
+  ],
+  "matrix_shape": [
+    128,
+    200
+  ],
+  "layer_results": [
+    {
+      "layer_index": 41,
+      "matrix_shape": [
+        128,
+        200
+      ],
+      "sanity_check_passed": true,
+      "avg_activations_per_expert": 12.5,
+      "min_activations": 0,
+      "max_activations": 197,
+      "zero_experts": 95
+    },
+    {
+      "layer_index": 42,
+      "matrix_shape": [
+        128,
+        200
+      ],
+      "sanity_check_passed": true,
+      "avg_activations_per_expert": 12.5,
+      "min_activations": 0,
+      "max_activations": 199,
+      "zero_experts": 100
+    },
+    {
+      "layer_index": 43,
+      "matrix_shape": [
+        128,
+        200
+      ],
+      "sanity_check_passed": true,
+      "avg_activations_per_expert": 12.5,
+      "min_activations": 0,
+      "max_activations": 200,
+      "zero_experts": 98
+    },
+    {
+      "layer_index": 19,
+      "matrix_shape": [
+        128,
+        200
+      ],
+      "sanity_check_passed": true,
+      "avg_activations_per_expert": 12.5,
+      "min_activations": 0,
+      "max_activations": 200,
+      "zero_experts": 98
+    },
+    {
+      "layer_index": 7,
+      "matrix_shape": [
+        128,
+        200
+      ],
+      "sanity_check_passed": true,
+      "avg_activations_per_expert": 12.5,
+      "min_activations": 0,
+      "max_activations": 200,
+      "zero_experts": 106
+    }
+  ]
+}

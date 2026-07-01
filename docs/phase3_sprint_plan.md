@@ -101,11 +101,11 @@ For the worst layer, build a binary matrix that shows which questions each exper
 
 This is the fingerprint of each expert: "which questions did I get called on?"
 
-- [ ] For each of the 128 experts in the worst layer, extract its 200-dim binary question vector from the binarized data
-- [ ] Sanity check: each column (question) should sum to exactly 8 - only 8 experts are selected per question per layer
-- [ ] Repeat for the top 5 worst layers so that expert-level ablation is available for all of them in Step 5
+- [x] For each of the 128 experts in the worst layer, extract its 200-dim binary question vector from the binarized data
+- [x] Sanity check: each column (question) should sum to exactly 8 - only 8 experts are selected per question per layer
+- [x] Repeat for the top 5 worst layers so that expert-level ablation is available for all of them in Step 5
 - [ ] If the single worst layer gives weak clustering, stack the next worst layer: 2 layers = 256 rows of experts to cluster
-- [ ] Save the matrices as files
+- [x] Save the matrices as files
 
 ---
 
