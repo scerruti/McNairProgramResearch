@@ -124,12 +124,12 @@ K-medoids works like k-means but uses an actual expert as each cluster center (i
 
 We want to find clusters where most of the questions they activate on were answered wrong - those are bad experts.
 
-- [ ] Compute the 128x128 Jaccard distance matrix from the fingerprint matrix for each of the top 5 worst layers
-- [ ] Run k-medoids with 2, 4, 6, and 8 clusters on each layer
-- [ ] Use silhouette scores to pick the best number of clusters (higher = tighter clusters)
-- [ ] For each cluster, check: what fraction of the questions those experts activate on were wrong? What categories dominate?
-- [ ] If one cluster is mostly wrong-answer questions, those experts are a confirmed failure pattern
-- [ ] Record the list of expert indices in each "bad" cluster per layer for use in Step 5
+- [x] Compute the 128x128 Jaccard distance matrix from the fingerprint matrix for each of the top 5 worst layers
+- [x] Run k-medoids with 2, 4, 6, and 8 clusters on each layer
+- [x] Use silhouette scores to pick the best number of clusters (higher = tighter clusters)
+- [x] For each cluster, check: what fraction of the questions those experts activate on were wrong? What categories dominate?
+- [x] If one cluster is mostly wrong-answer questions, those experts are a confirmed failure pattern
+- [x] Record the list of expert indices in each "bad" cluster per layer for use in Step 5
 
 > Steps 1-4 are all local Python scripts. No GPU needed.
 
