@@ -28,7 +28,6 @@ import sys
 import gc
 import json
 import random
-import string
 from pathlib import Path
 from contextlib import contextmanager
 
@@ -46,7 +45,7 @@ from tqdm import tqdm
 
 # --- Config ---
 
-MODEL_ID = "/workspace/.cache/huggingface/hub/models--Qwen--Qwen3-VL-30B-A3B-Instruct/snapshots/9c4b90e1e4ba969fd3b5378b57d966d725f1b86c"
+MODEL_ID = "/workspace/.cache/huggingface/hub/models--Qwen--Qwen3-VL-30B-A3B-Instruct"
 
 LEGO_TSV_PATH = "/workspace/lego_data/LEGO.tsv"
 IMG_DIR = Path("/workspace/lego_images")
@@ -61,17 +60,9 @@ RESULTS_PATH = OUTPUT_DIR / "ablation_results.json"
 LITE_CATEGORIES = ["height", "position", "rotation", "ordering"]
 MCQ_CHOICES = list("ABCDE")
 
-# Worst layers ranked by z-score from Step 2. Used for Part B scaling.
-WORST_LAYERS_RANKED = [41, 42, 43, 19, 7]
-
-# Number of random ablation trials per layer count in Part C.
 RANDOM_TRIALS_PER_COUNT = 10
-
-# Layer counts to test in Parts B and C.
 ABLATION_LAYER_COUNTS = [1, 3, 5]
-
 RANDOM_SEED = 42
-NUM_TOTAL_LAYERS = 48
 
 
 # --- Dependencies ---
@@ -145,7 +136,6 @@ def build_question_id_set(test_questions):
 def load_lego_dataframe(test_question_ids):
     df = pd.read_csv(LEGO_TSV_PATH, sep="\t")
     df = df[df["category"].isin(LITE_CATEGORIES)].reset_index(drop=True)
-    # Filter to only the 200 test questions by matching question_id to index column
     df = df[df["index"].astype(str).isin(test_question_ids)].reset_index(drop=True)
     print(f"Loaded {len(df)} test questions from LEGO.tsv.")
     return df
@@ -464,7 +454,7 @@ def run_part_b(model, processor, df, meta, bad_experts_by_layer, best_mode, wors
     return part_b_results
 
 
-def run_part_c(model, processor, df, meta):
+def run_part_c(model, processor, df, meta, num_total_layers):
     """
     Random ablation control using MoE-only mode.
 
@@ -479,7 +469,7 @@ def run_part_c(model, processor, df, meta):
 
     for count in ABLATION_LAYER_COUNTS:
         for trial in range(RANDOM_TRIALS_PER_COUNT):
-            random_layers = rng.sample(range(NUM_TOTAL_LAYERS), count)
+            random_layers = rng.sample(range(num_total_layers), count)
             print(f"\n--- Part C: {count} random layers, trial {trial + 1} --- layers: {sorted(random_layers)}")
             with apply_ablation(model, meta, "moe_only", random_layers):
                 results, accuracy = run_inference(
@@ -503,17 +493,17 @@ def main():
     ensure_deps()
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-    # Load experiment config
     test_questions = load_test_questions()
     step4_meta = load_step4_meta()
     test_question_ids = build_question_id_set(test_questions)
 
+    # Layer order in step4_meta matches z-score ranking from Step 2 (worst first).
+    worst_layers_ranked = [entry["layer_index"] for entry in step4_meta["layers"]]
     bad_experts_by_layer = {
         entry["layer_index"]: entry["bad_expert_indices"]
         for entry in step4_meta["layers"]
     }
 
-    # Load dataset filtered to test questions
     df = load_lego_dataframe(test_question_ids)
     if len(df) != len(test_questions):
         print(f"WARNING: expected {len(test_questions)} questions, got {len(df)}")
@@ -521,37 +511,31 @@ def main():
     # Load model once and reuse across all runs
     model, processor, meta = load_model_and_processor()
 
-    worst_layer = WORST_LAYERS_RANKED[0]
+    worst_layer = worst_layers_ranked[0]
     all_run_results = []
 
-    # Baseline
     baseline = run_baseline(model, processor, df, meta)
     all_run_results.append(baseline)
     baseline_accuracy = baseline["accuracy"]
 
-    # Part A
     part_a = run_part_a(model, processor, df, meta, bad_experts_by_layer, worst_layer)
     all_run_results.extend(part_a)
 
-    # Pick best mode from Part A by largest accuracy improvement over baseline
     best_mode = max(part_a, key=lambda r: r["accuracy"])["ablation_mode"]
     print(f"\nBest ablation mode from Part A: {best_mode}")
     print(f"Baseline accuracy: {baseline_accuracy:.1%}")
 
-    # Part B
-    part_b = run_part_b(model, processor, df, meta, bad_experts_by_layer, best_mode, WORST_LAYERS_RANKED)
+    part_b = run_part_b(model, processor, df, meta, bad_experts_by_layer, best_mode, worst_layers_ranked)
     all_run_results.extend(part_b)
 
-    # Part C
-    part_c = run_part_c(model, processor, df, meta)
+    part_c = run_part_c(model, processor, df, meta, meta["num_layers"])
     all_run_results.extend(part_c)
 
-    # Save all results
     output = {
         "baseline_accuracy": baseline_accuracy,
         "worst_layer_for_part_a": worst_layer,
         "best_mode_from_part_a": best_mode,
-        "worst_layers_ranked": WORST_LAYERS_RANKED,
+        "worst_layers_ranked": worst_layers_ranked,
         "bad_experts_by_layer": bad_experts_by_layer,
         "runs": all_run_results,
     }
@@ -560,7 +544,6 @@ def main():
         json.dump(output, f, indent=2)
     print(f"\nAll results saved to {RESULTS_PATH}")
 
-    # Summary
     print("\n=== SUMMARY ===")
     print(f"Baseline: {baseline_accuracy:.1%}")
     for run in all_run_results[1:]:
