@@ -30,7 +30,7 @@ pip install -q transformers accelerate bitsandbytes pandas tqdm pillow huggingfa
 
 echo "=== Step 2: Downloading LEGO.tsv ==="
 if [ ! -f "$LEGO_DATA_DIR/LEGO.tsv" ]; then
-    wget -q "https://opencompass.openxlab.space/utils/VLMEval/LEGO.tsv" -O "$LEGO_DATA_DIR/LEGO.tsv"
+    wget -q --no-check-certificate "https://opencompass.openxlab.space/utils/VLMEval/LEGO.tsv" -O "$LEGO_DATA_DIR/LEGO.tsv"
     echo "Downloaded LEGO.tsv"
 else
     echo "LEGO.tsv already exists, skipping."
