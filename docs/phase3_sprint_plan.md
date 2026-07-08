@@ -154,20 +154,20 @@ For full block ablation, the residual stream passes through unchanged (as if the
 
 **Part B: Scaling (MoE-only or expert ablation, whichever worked better in Part A)**
 
-- [ ] Run three versions: apply the best ablation type to the 1 worst layer, the 3 worst layers, and the 5 worst layers
-- [ ] Record accuracy per category for each version
+- [x] Run three versions: apply the best ablation type to the 1 worst layer, the 3 worst layers, and the 5 worst layers
+- [x] Record accuracy per category for each version
 
 **Part C: Random ablation control**
 
 For each ablation count (1, 3, 5 layers), run 10 trials where the same number of randomly chosen layers are ablated. If expert ablation won Part A, use MoE-only ablation for the random trials instead, since random layers have not been clustered and there is no way to identify which experts to disable. This is the only way to confirm that our scoring method found specifically harmful layers, not just that the model tolerates layer removal in general.
 
-- [ ] Set up a RunPod instance (GPU needed - this runs the actual model)
-- [ ] Implement three ablation modes in the inference script: full block skip, MoE-only skip, and expert-level masking with gate weight renormalization
-- [ ] Run Part A: baseline + 3 ablation types on the worst layer
-- [ ] Decide which ablation type to use for Parts B and C based on Part A results
-- [ ] Run Part B: skip 1, 3, 5 worst layers with the chosen ablation type
-- [ ] Run Part C: 10 random trials for each of 1, 3, 5 layer counts (30 runs total)
-- [ ] Record accuracy per category for every run
+- [x] Set up a RunPod instance (GPU needed - this runs the actual model)
+- [x] Implement three ablation modes in the inference script: full block skip, MoE-only skip, and expert-level masking with gate weight renormalization
+- [x] Run Part A: baseline + 3 ablation types on the worst layer
+- [x] Decide which ablation type to use for Parts B and C based on Part A results
+- [x] Run Part B: skip 1, 3, 5 worst layers with the chosen ablation type
+- [x] Run Part C: 10 random trials for each of 1, 3, 5 layer counts (30 runs total)
+- [x] Record accuracy per category for every run
 
 ---
 
@@ -203,14 +203,14 @@ CI = p +/- 1.96 * sqrt(p * (1 - p) / n)
 
 Where `p` is accuracy as a decimal and `n` is the number of questions (200 for overall, 50 for per-category). Note: per-category intervals will be wide (~+/- 14%) due to the small sample size of 50, so be cautious about per-category claims.
 
-- [ ] Build McNemar's 2x2 tables for each ablation run vs. baseline
-- [ ] Compute chi_squared and p-values; report which differences are significant
-- [ ] Compute random_mean and random_std for each layer count; compute z-scores
-- [ ] Report 95% confidence intervals for all accuracy numbers
-- [ ] Plot accuracy vs. number of skipped layers - does it go up, peak, then drop?
-- [ ] Check per-category: does skipping bad layers help some types more than others?
-- [ ] Re-run the best config on the holdout 200 to confirm the result generalizes
-- [ ] Write one paragraph: which layers were worst, did removing them help, by how much, and is it statistically significant?
+- [x] Build McNemar's 2x2 tables for each ablation run vs. baseline
+- [x] Compute chi_squared and p-values; report which differences are significant
+- [x] Compute random_mean and random_std for each layer count; compute z-scores
+- [x] Report 95% confidence intervals for all accuracy numbers
+- [x] Plot accuracy vs. number of skipped layers - does it go up, peak, then drop?
+- [x] Check per-category: does skipping bad layers help some types more than others?
+- [x] Re-run the best config on the holdout 200 to confirm the result generalizes
+- [x] Write one paragraph: which layers were worst, did removing them help, by how much, and is it statistically significant?
 
 ---
 

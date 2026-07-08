@@ -1,0 +1,2425 @@
+{
+  "holdout_baseline_accuracy": 0.29,
+  "holdout_ablation_accuracy": 0.27,
+  "ablation_mode": "moe_only",
+  "layers_ablated": [
+    41,
+    42,
+    43
+  ],
+  "n_questions": 200,
+  "runs": [
+    {
+      "run": "holdout_baseline",
+      "accuracy": 0.29,
+      "results": [
+        {
+          "question_id": "1",
+          "category": "height",
+          "prediction": "A",
+          "correct": true
+        },
+        {
+          "question_id": "3",
+          "category": "height",
+          "prediction": "A",
+          "correct": false
+        },
+        {
+          "question_id": "4",
+          "category": "height",
+          "prediction": "A",
+          "correct": true
+        },
+        {
+          "question_id": "5",
+          "category": "height",
+          "prediction": "B",
+          "correct": false
+        },
+        {
+          "question_id": "6",
+          "category": "height",
+          "prediction": "A",
+          "correct": false
+        },
+        {
+          "question_id": "7",
+          "category": "height",
+          "prediction": "A",
+          "correct": false
+        },
+        {
+          "question_id": "12",
+          "category": "height",
+          "prediction": "B",
+          "correct": true
+        },
+        {
+          "question_id": "14",
+          "category": "height",
+          "prediction": "B",
+          "correct": true
+        },
+        {
+          "question_id": "15",
+          "category": "height",
+          "prediction": "B",
+          "correct": false
+        },
+        {
+          "question_id": "17",
+          "category": "height",
+          "prediction": "A",
+          "correct": false
+        },
+        {
+          "question_id": "18",
+          "category": "height",
+          "prediction": "B",
+          "correct": false
+        },
+        {
+          "question_id": "20",
+          "category": "height",
+          "prediction": "B",
+          "correct": true
+        },
+        {
+          "question_id": "21",
+          "category": "height",
+          "prediction": "B",
+          "correct": false
+        },
+        {
+          "question_id": "23",
+          "category": "height",
+          "prediction": "A",
+          "correct": false
+        },
+        {
+          "question_id": "25",
+          "category": "height",
+          "prediction": "B",
+          "correct": false
+        },
+        {
+          "question_id": "26",
+          "category": "height",
+          "prediction": "B",
+          "correct": true
+        },
+        {
+          "question_id": "28",
+          "category": "height",
+          "prediction": "B",
+          "correct": false
+        },
+        {
+          "question_id": "29",
+          "category": "height",
+          "prediction": "B",
+          "correct": true
+        },
+        {
+          "question_id": "30",
+          "category": "height",
+          "prediction": "B",
+          "correct": false
+        },
+        {
+          "question_id": "32",
+          "category": "height",
+          "prediction": "B",
+          "correct": true
+        },
+        {
+          "question_id": "36",
+          "category": "height",
+          "prediction": "B",
+          "correct": false
+        },
+        {
+          "question_id": "39",
+          "category": "height",
+          "prediction": "B",
+          "correct": true
+        },
+        {
+          "question_id": "44",
+          "category": "height",
+          "prediction": "C",
+          "correct": true
+        },
+        {
+          "question_id": "47",
+          "category": "height",
+          "prediction": "B",
+          "correct": false
+        },
+        {
+          "question_id": "52",
+          "category": "height",
+          "prediction": "C",
+          "correct": true
+        },
+        {
+          "question_id": "54",
+          "category": "height",
+          "prediction": "A",
+          "correct": true
+        },
+        {
+          "question_id": "55",
+          "category": "height",
+          "prediction": "A",
+          "correct": false
+        },
+        {
+          "question_id": "58",
+          "category": "height",
+          "prediction": "B",
+          "correct": false
+        },
+        {
+          "question_id": "59",
+          "category": "height",
+          "prediction": "B",
+          "correct": false
+        },
+        {
+          "question_id": "63",
+          "category": "height",
+          "prediction": "B",
+          "correct": true
+        },
+        {
+          "question_id": "65",
+          "category": "height",
+          "prediction": "A",
+          "correct": false
+        },
+        {
+          "question_id": "68",
+          "category": "height",
+          "prediction": "B",
+          "correct": false
+        },
+        {
+          "question_id": "69",
+          "category": "height",
+          "prediction": "C",
+          "correct": true
+        },
+        {
+          "question_id": "70",
+          "category": "height",
+          "prediction": "B",
+          "correct": false
+        },
+        {
+          "question_id": "72",
+          "category": "height",
+          "prediction": "A",
+          "correct": false
+        },
+        {
+          "question_id": "76",
+          "category": "height",
+          "prediction": "A",
+          "correct": false
+        },
+        {
+          "question_id": "78",
+          "category": "height",
+          "prediction": "B",
+          "correct": false
+        },
+        {
+          "question_id": "80",
+          "category": "height",
+          "prediction": "B",
+          "correct": false
+        },
+        {
+          "question_id": "82",
+          "category": "height",
+          "prediction": "B",
+          "correct": false
+        },
+        {
+          "question_id": "83",
+          "category": "height",
+          "prediction": "A",
+          "correct": false
+        },
+        {
+          "question_id": "85",
+          "category": "height",
+          "prediction": "B",
+          "correct": true
+        },
+        {
+          "question_id": "87",
+          "category": "height",
+          "prediction": "B",
+          "correct": false
+        },
+        {
+          "question_id": "89",
+          "category": "height",
+          "prediction": "A",
+          "correct": true
+        },
+        {
+          "question_id": "90",
+          "category": "height",
+          "prediction": "A",
+          "correct": false
+        },
+        {
+          "question_id": "91",
+          "category": "height",
+          "prediction": "A",
+          "correct": true
+        },
+        {
+          "question_id": "94",
+          "category": "height",
+          "prediction": "A",
+          "correct": false
+        },
+        {
+          "question_id": "95",
+          "category": "height",
+          "prediction": "A",
+          "correct": false
+        },
+        {
+          "question_id": "96",
+          "category": "height",
+          "prediction": "B",
+          "correct": false
+        },
+        {
+          "question_id": "98",
+          "category": "height",
+          "prediction": "B",
+          "correct": true
+        },
+        {
+          "question_id": "100",
+          "category": "height",
+          "prediction": "B",
+          "correct": true
+        },
+        {
+          "question_id": "201",
+          "category": "rotation",
+          "prediction": "C",
+          "correct": false
+        },
+        {
+          "question_id": "205",
+          "category": "rotation",
+          "prediction": "C",
+          "correct": false
+        },
+        {
+          "question_id": "206",
+          "category": "rotation",
+          "prediction": "C",
+          "correct": false
+        },
+        {
+          "question_id": "207",
+          "category": "rotation",
+          "prediction": "C",
+          "correct": true
+        },
+        {
+          "question_id": "208",
+          "category": "rotation",
+          "prediction": "C",
+          "correct": false
+        },
+        {
+          "question_id": "209",
+          "category": "rotation",
+          "prediction": "C",
+          "correct": false
+        },
+        {
+          "question_id": "211",
+          "category": "rotation",
+          "prediction": "C",
+          "correct": true
+        },
+        {
+          "question_id": "214",
+          "category": "rotation",
+          "prediction": "C",
+          "correct": false
+        },
+        {
+          "question_id": "216",
+          "category": "rotation",
+          "prediction": "C",
+          "correct": false
+        },
+        {
+          "question_id": "217",
+          "category": "rotation",
+          "prediction": "C",
+          "correct": false
+        },
+        {
+          "question_id": "221",
+          "category": "rotation",
+          "prediction": "C",
+          "correct": false
+        },
+        {
+          "question_id": "224",
+          "category": "rotation",
+          "prediction": "C",
+          "correct": false
+        },
+        {
+          "question_id": "227",
+          "category": "rotation",
+          "prediction": "B",
+          "correct": false
+        },
+        {
+          "question_id": "230",
+          "category": "rotation",
+          "prediction": "C",
+          "correct": false
+        },
+        {
+          "question_id": "231",
+          "category": "rotation",
+          "prediction": "C",
+          "correct": true
+        },
+        {
+          "question_id": "232",
+          "category": "rotation",
+          "prediction": "C",
+          "correct": false
+        },
+        {
+          "question_id": "234",
+          "category": "rotation",
+          "prediction": "C",
+          "correct": false
+        },
+        {
+          "question_id": "235",
+          "category": "rotation",
+          "prediction": "C",
+          "correct": true
+        },
+        {
+          "question_id": "237",
+          "category": "rotation",
+          "prediction": "C",
+          "correct": false
+        },
+        {
+          "question_id": "239",
+          "category": "rotation",
+          "prediction": "C",
+          "correct": true
+        },
+        {
+          "question_id": "240",
+          "category": "rotation",
+          "prediction": "C",
+          "correct": false
+        },
+        {
+          "question_id": "241",
+          "category": "rotation",
+          "prediction": "C",
+          "correct": false
+        },
+        {
+          "question_id": "249",
+          "category": "rotation",
+          "prediction": "C",
+          "correct": false
+        },
+        {
+          "question_id": "251",
+          "category": "rotation",
+          "prediction": "A",
+          "correct": false
+        },
+        {
+          "question_id": "252",
+          "category": "rotation",
+          "prediction": "B",
+          "correct": false
+        },
+        {
+          "question_id": "254",
+          "category": "rotation",
+          "prediction": "D",
+          "correct": false
+        },
+        {
+          "question_id": "259",
+          "category": "rotation",
+          "prediction": "A",
+          "correct": false
+        },
+        {
+          "question_id": "260",
+          "category": "rotation",
+          "prediction": "B",
+          "correct": true
+        },
+        {
+          "question_id": "262",
+          "category": "rotation",
+          "prediction": "D",
+          "correct": false
+        },
+        {
+          "question_id": "263",
+          "category": "rotation",
+          "prediction": "A",
+          "correct": false
+        },
+        {
+          "question_id": "265",
+          "category": "rotation",
+          "prediction": "C",
+          "correct": false
+        },
+        {
+          "question_id": "266",
+          "category": "rotation",
+          "prediction": "D",
+          "correct": true
+        },
+        {
+          "question_id": "267",
+          "category": "rotation",
+          "prediction": "B",
+          "correct": true
+        },
+        {
+          "question_id": "268",
+          "category": "rotation",
+          "prediction": "B",
+          "correct": false
+        },
+        {
+          "question_id": "271",
+          "category": "rotation",
+          "prediction": "A",
+          "correct": false
+        },
+        {
+          "question_id": "272",
+          "category": "rotation",
+          "prediction": "B",
+          "correct": false
+        },
+        {
+          "question_id": "273",
+          "category": "rotation",
+          "prediction": "C",
+          "correct": false
+        },
+        {
+          "question_id": "275",
+          "category": "rotation",
+          "prediction": "A",
+          "correct": false
+        },
+        {
+          "question_id": "277",
+          "category": "rotation",
+          "prediction": "C",
+          "correct": true
+        },
+        {
+          "question_id": "281",
+          "category": "rotation",
+          "prediction": "C",
+          "correct": false
+        },
+        {
+          "question_id": "284",
+          "category": "rotation",
+          "prediction": "B",
+          "correct": false
+        },
+        {
+          "question_id": "286",
+          "category": "rotation",
+          "prediction": "D",
+          "correct": true
+        },
+        {
+          "question_id": "287",
+          "category": "rotation",
+          "prediction": "A",
+          "correct": true
+        },
+        {
+          "question_id": "289",
+          "category": "rotation",
+          "prediction": "C",
+          "correct": false
+        },
+        {
+          "question_id": "292",
+          "category": "rotation",
+          "prediction": "B",
+          "correct": false
+        },
+        {
+          "question_id": "296",
+          "category": "rotation",
+          "prediction": "B",
+          "correct": false
+        },
+        {
+          "question_id": "297",
+          "category": "rotation",
+          "prediction": "C",
+          "correct": true
+        },
+        {
+          "question_id": "298",
+          "category": "rotation",
+          "prediction": "D",
+          "correct": true
+        },
+        {
+          "question_id": "299",
+          "category": "rotation",
+          "prediction": "B",
+          "correct": false
+        },
+        {
+          "question_id": "300",
+          "category": "rotation",
+          "prediction": "D",
+          "correct": true
+        },
+        {
+          "question_id": "501",
+          "category": "position",
+          "prediction": "A",
+          "correct": true
+        },
+        {
+          "question_id": "503",
+          "category": "position",
+          "prediction": "C",
+          "correct": true
+        },
+        {
+          "question_id": "504",
+          "category": "position",
+          "prediction": "A",
+          "correct": false
+        },
+        {
+          "question_id": "505",
+          "category": "position",
+          "prediction": "A",
+          "correct": true
+        },
+        {
+          "question_id": "507",
+          "category": "position",
+          "prediction": "A",
+          "correct": false
+        },
+        {
+          "question_id": "508",
+          "category": "position",
+          "prediction": "A",
+          "correct": false
+        },
+        {
+          "question_id": "509",
+          "category": "position",
+          "prediction": "C",
+          "correct": false
+        },
+        {
+          "question_id": "510",
+          "category": "position",
+          "prediction": "D",
+          "correct": false
+        },
+        {
+          "question_id": "513",
+          "category": "position",
+          "prediction": "A",
+          "correct": true
+        },
+        {
+          "question_id": "516",
+          "category": "position",
+          "prediction": "A",
+          "correct": false
+        },
+        {
+          "question_id": "517",
+          "category": "position",
+          "prediction": "A",
+          "correct": true
+        },
+        {
+          "question_id": "523",
+          "category": "position",
+          "prediction": "A",
+          "correct": false
+        },
+        {
+          "question_id": "525",
+          "category": "position",
+          "prediction": "C",
+          "correct": false
+        },
+        {
+          "question_id": "527",
+          "category": "position",
+          "prediction": "D",
+          "correct": false
+        },
+        {
+          "question_id": "528",
+          "category": "position",
+          "prediction": "D",
+          "correct": true
+        },
+        {
+          "question_id": "529",
+          "category": "position",
+          "prediction": "A",
+          "correct": true
+        },
+        {
+          "question_id": "530",
+          "category": "position",
+          "prediction": "C",
+          "correct": false
+        },
+        {
+          "question_id": "531",
+          "category": "position",
+          "prediction": "A",
+          "correct": false
+        },
+        {
+          "question_id": "532",
+          "category": "position",
+          "prediction": "C",
+          "correct": false
+        },
+        {
+          "question_id": "536",
+          "category": "position",
+          "prediction": "A",
+          "correct": false
+        },
+        {
+          "question_id": "542",
+          "category": "position",
+          "prediction": "A",
+          "correct": false
+        },
+        {
+          "question_id": "543",
+          "category": "position",
+          "prediction": "A",
+          "correct": false
+        },
+        {
+          "question_id": "544",
+          "category": "position",
+          "prediction": "C",
+          "correct": false
+        },
+        {
+          "question_id": "547",
+          "category": "position",
+          "prediction": "D",
+          "correct": false
+        },
+        {
+          "question_id": "553",
+          "category": "position",
+          "prediction": "D",
+          "correct": false
+        },
+        {
+          "question_id": "556",
+          "category": "position",
+          "prediction": "C",
+          "correct": false
+        },
+        {
+          "question_id": "557",
+          "category": "position",
+          "prediction": "A",
+          "correct": true
+        },
+        {
+          "question_id": "558",
+          "category": "position",
+          "prediction": "D",
+          "correct": false
+        },
+        {
+          "question_id": "561",
+          "category": "position",
+          "prediction": "A",
+          "correct": true
+        },
+        {
+          "question_id": "562",
+          "category": "position",
+          "prediction": "A",
+          "correct": false
+        },
+        {
+          "question_id": "563",
+          "category": "position",
+          "prediction": "A",
+          "correct": false
+        },
+        {
+          "question_id": "565",
+          "category": "position",
+          "prediction": "A",
+          "correct": true
+        },
+        {
+          "question_id": "566",
+          "category": "position",
+          "prediction": "A",
+          "correct": false
+        },
+        {
+          "question_id": "567",
+          "category": "position",
+          "prediction": "A",
+          "correct": false
+        },
+        {
+          "question_id": "570",
+          "category": "position",
+          "prediction": "A",
+          "correct": false
+        },
+        {
+          "question_id": "571",
+          "category": "position",
+          "prediction": "C",
+          "correct": true
+        },
+        {
+          "question_id": "572",
+          "category": "position",
+          "prediction": "A",
+          "correct": false
+        },
+        {
+          "question_id": "573",
+          "category": "position",
+          "prediction": "A",
+          "correct": true
+        },
+        {
+          "question_id": "576",
+          "category": "position",
+          "prediction": "A",
+          "correct": false
+        },
+        {
+          "question_id": "579",
+          "category": "position",
+          "prediction": "D",
+          "correct": false
+        },
+        {
+          "question_id": "581",
+          "category": "position",
+          "prediction": "C",
+          "correct": false
+        },
+        {
+          "question_id": "582",
+          "category": "position",
+          "prediction": "A",
+          "correct": false
+        },
+        {
+          "question_id": "585",
+          "category": "position",
+          "prediction": "A",
+          "correct": true
+        },
+        {
+          "question_id": "589",
+          "category": "position",
+          "prediction": "C",
+          "correct": false
+        },
+        {
+          "question_id": "591",
+          "category": "position",
+          "prediction": "A",
+          "correct": false
+        },
+        {
+          "question_id": "593",
+          "category": "position",
+          "prediction": "A",
+          "correct": true
+        },
+        {
+          "question_id": "594",
+          "category": "position",
+          "prediction": "A",
+          "correct": false
+        },
+        {
+          "question_id": "595",
+          "category": "position",
+          "prediction": "A",
+          "correct": false
+        },
+        {
+          "question_id": "596",
+          "category": "position",
+          "prediction": "A",
+          "correct": false
+        },
+        {
+          "question_id": "599",
+          "category": "position",
+          "prediction": "A",
+          "correct": false
+        },
+        {
+          "question_id": "701",
+          "category": "ordering",
+          "prediction": "D",
+          "correct": false
+        },
+        {
+          "question_id": "707",
+          "category": "ordering",
+          "prediction": "D",
+          "correct": false
+        },
+        {
+          "question_id": "708",
+          "category": "ordering",
+          "prediction": "D",
+          "correct": false
+        },
+        {
+          "question_id": "709",
+          "category": "ordering",
+          "prediction": "D",
+          "correct": false
+        },
+        {
+          "question_id": "712",
+          "category": "ordering",
+          "prediction": "D",
+          "correct": false
+        },
+        {
+          "question_id": "715",
+          "category": "ordering",
+          "prediction": "D",
+          "correct": false
+        },
+        {
+          "question_id": "718",
+          "category": "ordering",
+          "prediction": "D",
+          "correct": false
+        },
+        {
+          "question_id": "719",
+          "category": "ordering",
+          "prediction": "D",
+          "correct": false
+        },
+        {
+          "question_id": "720",
+          "category": "ordering",
+          "prediction": "D",
+          "correct": false
+        },
+        {
+          "question_id": "721",
+          "category": "ordering",
+          "prediction": "D",
+          "correct": false
+        },
+        {
+          "question_id": "728",
+          "category": "ordering",
+          "prediction": "D",
+          "correct": false
+        },
+        {
+          "question_id": "729",
+          "category": "ordering",
+          "prediction": "D",
+          "correct": false
+        },
+        {
+          "question_id": "732",
+          "category": "ordering",
+          "prediction": "D",
+          "correct": false
+        },
+        {
+          "question_id": "733",
+          "category": "ordering",
+          "prediction": "D",
+          "correct": false
+        },
+        {
+          "question_id": "734",
+          "category": "ordering",
+          "prediction": "D",
+          "correct": false
+        },
+        {
+          "question_id": "735",
+          "category": "ordering",
+          "prediction": "D",
+          "correct": false
+        },
+        {
+          "question_id": "736",
+          "category": "ordering",
+          "prediction": "D",
+          "correct": false
+        },
+        {
+          "question_id": "741",
+          "category": "ordering",
+          "prediction": "D",
+          "correct": false
+        },
+        {
+          "question_id": "742",
+          "category": "ordering",
+          "prediction": "D",
+          "correct": false
+        },
+        {
+          "question_id": "744",
+          "category": "ordering",
+          "prediction": "D",
+          "correct": true
+        },
+        {
+          "question_id": "747",
+          "category": "ordering",
+          "prediction": "D",
+          "correct": true
+        },
+        {
+          "question_id": "749",
+          "category": "ordering",
+          "prediction": "D",
+          "correct": false
+        },
+        {
+          "question_id": "750",
+          "category": "ordering",
+          "prediction": "D",
+          "correct": false
+        },
+        {
+          "question_id": "751",
+          "category": "ordering",
+          "prediction": "D",
+          "correct": false
+        },
+        {
+          "question_id": "752",
+          "category": "ordering",
+          "prediction": "D",
+          "correct": false
+        },
+        {
+          "question_id": "755",
+          "category": "ordering",
+          "prediction": "D",
+          "correct": true
+        },
+        {
+          "question_id": "756",
+          "category": "ordering",
+          "prediction": "D",
+          "correct": true
+        },
+        {
+          "question_id": "759",
+          "category": "ordering",
+          "prediction": "D",
+          "correct": false
+        },
+        {
+          "question_id": "760",
+          "category": "ordering",
+          "prediction": "D",
+          "correct": false
+        },
+        {
+          "question_id": "763",
+          "category": "ordering",
+          "prediction": "D",
+          "correct": false
+        },
+        {
+          "question_id": "764",
+          "category": "ordering",
+          "prediction": "D",
+          "correct": false
+        },
+        {
+          "question_id": "766",
+          "category": "ordering",
+          "prediction": "D",
+          "correct": false
+        },
+        {
+          "question_id": "767",
+          "category": "ordering",
+          "prediction": "D",
+          "correct": false
+        },
+        {
+          "question_id": "769",
+          "category": "ordering",
+          "prediction": "D",
+          "correct": false
+        },
+        {
+          "question_id": "772",
+          "category": "ordering",
+          "prediction": "A",
+          "correct": false
+        },
+        {
+          "question_id": "773",
+          "category": "ordering",
+          "prediction": "D",
+          "correct": true
+        },
+        {
+          "question_id": "775",
+          "category": "ordering",
+          "prediction": "D",
+          "correct": true
+        },
+        {
+          "question_id": "776",
+          "category": "ordering",
+          "prediction": "D",
+          "correct": true
+        },
+        {
+          "question_id": "777",
+          "category": "ordering",
+          "prediction": "D",
+          "correct": false
+        },
+        {
+          "question_id": "779",
+          "category": "ordering",
+          "prediction": "D",
+          "correct": false
+        },
+        {
+          "question_id": "782",
+          "category": "ordering",
+          "prediction": "D",
+          "correct": true
+        },
+        {
+          "question_id": "783",
+          "category": "ordering",
+          "prediction": "D",
+          "correct": true
+        },
+        {
+          "question_id": "784",
+          "category": "ordering",
+          "prediction": "D",
+          "correct": true
+        },
+        {
+          "question_id": "788",
+          "category": "ordering",
+          "prediction": "D",
+          "correct": false
+        },
+        {
+          "question_id": "789",
+          "category": "ordering",
+          "prediction": "D",
+          "correct": false
+        },
+        {
+          "question_id": "791",
+          "category": "ordering",
+          "prediction": "D",
+          "correct": false
+        },
+        {
+          "question_id": "792",
+          "category": "ordering",
+          "prediction": "D",
+          "correct": false
+        },
+        {
+          "question_id": "794",
+          "category": "ordering",
+          "prediction": "D",
+          "correct": false
+        },
+        {
+          "question_id": "798",
+          "category": "ordering",
+          "prediction": "D",
+          "correct": false
+        },
+        {
+          "question_id": "800",
+          "category": "ordering",
+          "prediction": "D",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "run": "holdout_moe_only_3layers",
+      "accuracy": 0.27,
+      "results": [
+        {
+          "question_id": "1",
+          "category": "height",
+          "prediction": "A",
+          "correct": true
+        },
+        {
+          "question_id": "3",
+          "category": "height",
+          "prediction": "A",
+          "correct": false
+        },
+        {
+          "question_id": "4",
+          "category": "height",
+          "prediction": "B",
+          "correct": false
+        },
+        {
+          "question_id": "5",
+          "category": "height",
+          "prediction": "B",
+          "correct": false
+        },
+        {
+          "question_id": "6",
+          "category": "height",
+          "prediction": "A",
+          "correct": false
+        },
+        {
+          "question_id": "7",
+          "category": "height",
+          "prediction": "A",
+          "correct": false
+        },
+        {
+          "question_id": "12",
+          "category": "height",
+          "prediction": "B",
+          "correct": true
+        },
+        {
+          "question_id": "14",
+          "category": "height",
+          "prediction": "B",
+          "correct": true
+        },
+        {
+          "question_id": "15",
+          "category": "height",
+          "prediction": "B",
+          "correct": false
+        },
+        {
+          "question_id": "17",
+          "category": "height",
+          "prediction": "A",
+          "correct": false
+        },
+        {
+          "question_id": "18",
+          "category": "height",
+          "prediction": "B",
+          "correct": false
+        },
+        {
+          "question_id": "20",
+          "category": "height",
+          "prediction": "B",
+          "correct": true
+        },
+        {
+          "question_id": "21",
+          "category": "height",
+          "prediction": "B",
+          "correct": false
+        },
+        {
+          "question_id": "23",
+          "category": "height",
+          "prediction": "A",
+          "correct": false
+        },
+        {
+          "question_id": "25",
+          "category": "height",
+          "prediction": "B",
+          "correct": false
+        },
+        {
+          "question_id": "26",
+          "category": "height",
+          "prediction": "B",
+          "correct": true
+        },
+        {
+          "question_id": "28",
+          "category": "height",
+          "prediction": "B",
+          "correct": false
+        },
+        {
+          "question_id": "29",
+          "category": "height",
+          "prediction": "B",
+          "correct": true
+        },
+        {
+          "question_id": "30",
+          "category": "height",
+          "prediction": "B",
+          "correct": false
+        },
+        {
+          "question_id": "32",
+          "category": "height",
+          "prediction": "B",
+          "correct": true
+        },
+        {
+          "question_id": "36",
+          "category": "height",
+          "prediction": "B",
+          "correct": false
+        },
+        {
+          "question_id": "39",
+          "category": "height",
+          "prediction": "B",
+          "correct": true
+        },
+        {
+          "question_id": "44",
+          "category": "height",
+          "prediction": "C",
+          "correct": true
+        },
+        {
+          "question_id": "47",
+          "category": "height",
+          "prediction": "B",
+          "correct": false
+        },
+        {
+          "question_id": "52",
+          "category": "height",
+          "prediction": "A",
+          "correct": false
+        },
+        {
+          "question_id": "54",
+          "category": "height",
+          "prediction": "A",
+          "correct": true
+        },
+        {
+          "question_id": "55",
+          "category": "height",
+          "prediction": "A",
+          "correct": false
+        },
+        {
+          "question_id": "58",
+          "category": "height",
+          "prediction": "B",
+          "correct": false
+        },
+        {
+          "question_id": "59",
+          "category": "height",
+          "prediction": "B",
+          "correct": false
+        },
+        {
+          "question_id": "63",
+          "category": "height",
+          "prediction": "B",
+          "correct": true
+        },
+        {
+          "question_id": "65",
+          "category": "height",
+          "prediction": "A",
+          "correct": false
+        },
+        {
+          "question_id": "68",
+          "category": "height",
+          "prediction": "B",
+          "correct": false
+        },
+        {
+          "question_id": "69",
+          "category": "height",
+          "prediction": "C",
+          "correct": true
+        },
+        {
+          "question_id": "70",
+          "category": "height",
+          "prediction": "B",
+          "correct": false
+        },
+        {
+          "question_id": "72",
+          "category": "height",
+          "prediction": "A",
+          "correct": false
+        },
+        {
+          "question_id": "76",
+          "category": "height",
+          "prediction": "A",
+          "correct": false
+        },
+        {
+          "question_id": "78",
+          "category": "height",
+          "prediction": "B",
+          "correct": false
+        },
+        {
+          "question_id": "80",
+          "category": "height",
+          "prediction": "B",
+          "correct": false
+        },
+        {
+          "question_id": "82",
+          "category": "height",
+          "prediction": "B",
+          "correct": false
+        },
+        {
+          "question_id": "83",
+          "category": "height",
+          "prediction": "B",
+          "correct": true
+        },
+        {
+          "question_id": "85",
+          "category": "height",
+          "prediction": "B",
+          "correct": true
+        },
+        {
+          "question_id": "87",
+          "category": "height",
+          "prediction": "B",
+          "correct": false
+        },
+        {
+          "question_id": "89",
+          "category": "height",
+          "prediction": "A",
+          "correct": true
+        },
+        {
+          "question_id": "90",
+          "category": "height",
+          "prediction": "A",
+          "correct": false
+        },
+        {
+          "question_id": "91",
+          "category": "height",
+          "prediction": "A",
+          "correct": true
+        },
+        {
+          "question_id": "94",
+          "category": "height",
+          "prediction": "A",
+          "correct": false
+        },
+        {
+          "question_id": "95",
+          "category": "height",
+          "prediction": "A",
+          "correct": false
+        },
+        {
+          "question_id": "96",
+          "category": "height",
+          "prediction": "B",
+          "correct": false
+        },
+        {
+          "question_id": "98",
+          "category": "height",
+          "prediction": "B",
+          "correct": true
+        },
+        {
+          "question_id": "100",
+          "category": "height",
+          "prediction": "B",
+          "correct": true
+        },
+        {
+          "question_id": "201",
+          "category": "rotation",
+          "prediction": "B",
+          "correct": false
+        },
+        {
+          "question_id": "205",
+          "category": "rotation",
+          "prediction": "C",
+          "correct": false
+        },
+        {
+          "question_id": "206",
+          "category": "rotation",
+          "prediction": "C",
+          "correct": false
+        },
+        {
+          "question_id": "207",
+          "category": "rotation",
+          "prediction": "C",
+          "correct": true
+        },
+        {
+          "question_id": "208",
+          "category": "rotation",
+          "prediction": "C",
+          "correct": false
+        },
+        {
+          "question_id": "209",
+          "category": "rotation",
+          "prediction": "C",
+          "correct": false
+        },
+        {
+          "question_id": "211",
+          "category": "rotation",
+          "prediction": "C",
+          "correct": true
+        },
+        {
+          "question_id": "214",
+          "category": "rotation",
+          "prediction": "C",
+          "correct": false
+        },
+        {
+          "question_id": "216",
+          "category": "rotation",
+          "prediction": "C",
+          "correct": false
+        },
+        {
+          "question_id": "217",
+          "category": "rotation",
+          "prediction": "C",
+          "correct": false
+        },
+        {
+          "question_id": "221",
+          "category": "rotation",
+          "prediction": "C",
+          "correct": false
+        },
+        {
+          "question_id": "224",
+          "category": "rotation",
+          "prediction": "B",
+          "correct": false
+        },
+        {
+          "question_id": "227",
+          "category": "rotation",
+          "prediction": "B",
+          "correct": false
+        },
+        {
+          "question_id": "230",
+          "category": "rotation",
+          "prediction": "B",
+          "correct": true
+        },
+        {
+          "question_id": "231",
+          "category": "rotation",
+          "prediction": "B",
+          "correct": false
+        },
+        {
+          "question_id": "232",
+          "category": "rotation",
+          "prediction": "C",
+          "correct": false
+        },
+        {
+          "question_id": "234",
+          "category": "rotation",
+          "prediction": "C",
+          "correct": false
+        },
+        {
+          "question_id": "235",
+          "category": "rotation",
+          "prediction": "C",
+          "correct": true
+        },
+        {
+          "question_id": "237",
+          "category": "rotation",
+          "prediction": "B",
+          "correct": false
+        },
+        {
+          "question_id": "239",
+          "category": "rotation",
+          "prediction": "C",
+          "correct": true
+        },
+        {
+          "question_id": "240",
+          "category": "rotation",
+          "prediction": "C",
+          "correct": false
+        },
+        {
+          "question_id": "241",
+          "category": "rotation",
+          "prediction": "C",
+          "correct": false
+        },
+        {
+          "question_id": "249",
+          "category": "rotation",
+          "prediction": "C",
+          "correct": false
+        },
+        {
+          "question_id": "251",
+          "category": "rotation",
+          "prediction": "B",
+          "correct": false
+        },
+        {
+          "question_id": "252",
+          "category": "rotation",
+          "prediction": "B",
+          "correct": false
+        },
+        {
+          "question_id": "254",
+          "category": "rotation",
+          "prediction": "C",
+          "correct": false
+        },
+        {
+          "question_id": "259",
+          "category": "rotation",
+          "prediction": "B",
+          "correct": false
+        },
+        {
+          "question_id": "260",
+          "category": "rotation",
+          "prediction": "B",
+          "correct": true
+        },
+        {
+          "question_id": "262",
+          "category": "rotation",
+          "prediction": "D",
+          "correct": false
+        },
+        {
+          "question_id": "263",
+          "category": "rotation",
+          "prediction": "B",
+          "correct": false
+        },
+        {
+          "question_id": "265",
+          "category": "rotation",
+          "prediction": "B",
+          "correct": false
+        },
+        {
+          "question_id": "266",
+          "category": "rotation",
+          "prediction": "D",
+          "correct": true
+        },
+        {
+          "question_id": "267",
+          "category": "rotation",
+          "prediction": "B",
+          "correct": true
+        },
+        {
+          "question_id": "268",
+          "category": "rotation",
+          "prediction": "B",
+          "correct": false
+        },
+        {
+          "question_id": "271",
+          "category": "rotation",
+          "prediction": "B",
+          "correct": false
+        },
+        {
+          "question_id": "272",
+          "category": "rotation",
+          "prediction": "B",
+          "correct": false
+        },
+        {
+          "question_id": "273",
+          "category": "rotation",
+          "prediction": "B",
+          "correct": false
+        },
+        {
+          "question_id": "275",
+          "category": "rotation",
+          "prediction": "B",
+          "correct": false
+        },
+        {
+          "question_id": "277",
+          "category": "rotation",
+          "prediction": "B",
+          "correct": false
+        },
+        {
+          "question_id": "281",
+          "category": "rotation",
+          "prediction": "C",
+          "correct": false
+        },
+        {
+          "question_id": "284",
+          "category": "rotation",
+          "prediction": "B",
+          "correct": false
+        },
+        {
+          "question_id": "286",
+          "category": "rotation",
+          "prediction": "D",
+          "correct": true
+        },
+        {
+          "question_id": "287",
+          "category": "rotation",
+          "prediction": "B",
+          "correct": false
+        },
+        {
+          "question_id": "289",
+          "category": "rotation",
+          "prediction": "C",
+          "correct": false
+        },
+        {
+          "question_id": "292",
+          "category": "rotation",
+          "prediction": "B",
+          "correct": false
+        },
+        {
+          "question_id": "296",
+          "category": "rotation",
+          "prediction": "B",
+          "correct": false
+        },
+        {
+          "question_id": "297",
+          "category": "rotation",
+          "prediction": "B",
+          "correct": false
+        },
+        {
+          "question_id": "298",
+          "category": "rotation",
+          "prediction": "D",
+          "correct": true
+        },
+        {
+          "question_id": "299",
+          "category": "rotation",
+          "prediction": "B",
+          "correct": false
+        },
+        {
+          "question_id": "300",
+          "category": "rotation",
+          "prediction": "D",
+          "correct": true
+        },
+        {
+          "question_id": "501",
+          "category": "position",
+          "prediction": "B",
+          "correct": false
+        },
+        {
+          "question_id": "503",
+          "category": "position",
+          "prediction": "B",
+          "correct": false
+        },
+        {
+          "question_id": "504",
+          "category": "position",
+          "prediction": "A",
+          "correct": false
+        },
+        {
+          "question_id": "505",
+          "category": "position",
+          "prediction": "B",
+          "correct": false
+        },
+        {
+          "question_id": "507",
+          "category": "position",
+          "prediction": "B",
+          "correct": false
+        },
+        {
+          "question_id": "508",
+          "category": "position",
+          "prediction": "B",
+          "correct": false
+        },
+        {
+          "question_id": "509",
+          "category": "position",
+          "prediction": "B",
+          "correct": false
+        },
+        {
+          "question_id": "510",
+          "category": "position",
+          "prediction": "B",
+          "correct": true
+        },
+        {
+          "question_id": "513",
+          "category": "position",
+          "prediction": "B",
+          "correct": false
+        },
+        {
+          "question_id": "516",
+          "category": "position",
+          "prediction": "B",
+          "correct": false
+        },
+        {
+          "question_id": "517",
+          "category": "position",
+          "prediction": "A",
+          "correct": true
+        },
+        {
+          "question_id": "523",
+          "category": "position",
+          "prediction": "B",
+          "correct": false
+        },
+        {
+          "question_id": "525",
+          "category": "position",
+          "prediction": "B",
+          "correct": false
+        },
+        {
+          "question_id": "527",
+          "category": "position",
+          "prediction": "B",
+          "correct": false
+        },
+        {
+          "question_id": "528",
+          "category": "position",
+          "prediction": "B",
+          "correct": false
+        },
+        {
+          "question_id": "529",
+          "category": "position",
+          "prediction": "A",
+          "correct": true
+        },
+        {
+          "question_id": "530",
+          "category": "position",
+          "prediction": "B",
+          "correct": true
+        },
+        {
+          "question_id": "531",
+          "category": "position",
+          "prediction": "B",
+          "correct": false
+        },
+        {
+          "question_id": "532",
+          "category": "position",
+          "prediction": "B",
+          "correct": false
+        },
+        {
+          "question_id": "536",
+          "category": "position",
+          "prediction": "B",
+          "correct": false
+        },
+        {
+          "question_id": "542",
+          "category": "position",
+          "prediction": "B",
+          "correct": true
+        },
+        {
+          "question_id": "543",
+          "category": "position",
+          "prediction": "B",
+          "correct": false
+        },
+        {
+          "question_id": "544",
+          "category": "position",
+          "prediction": "B",
+          "correct": false
+        },
+        {
+          "question_id": "547",
+          "category": "position",
+          "prediction": "C",
+          "correct": true
+        },
+        {
+          "question_id": "553",
+          "category": "position",
+          "prediction": "B",
+          "correct": false
+        },
+        {
+          "question_id": "556",
+          "category": "position",
+          "prediction": "B",
+          "correct": false
+        },
+        {
+          "question_id": "557",
+          "category": "position",
+          "prediction": "B",
+          "correct": false
+        },
+        {
+          "question_id": "558",
+          "category": "position",
+          "prediction": "B",
+          "correct": true
+        },
+        {
+          "question_id": "561",
+          "category": "position",
+          "prediction": "A",
+          "correct": true
+        },
+        {
+          "question_id": "562",
+          "category": "position",
+          "prediction": "B",
+          "correct": true
+        },
+        {
+          "question_id": "563",
+          "category": "position",
+          "prediction": "A",
+          "correct": false
+        },
+        {
+          "question_id": "565",
+          "category": "position",
+          "prediction": "B",
+          "correct": false
+        },
+        {
+          "question_id": "566",
+          "category": "position",
+          "prediction": "A",
+          "correct": false
+        },
+        {
+          "question_id": "567",
+          "category": "position",
+          "prediction": "B",
+          "correct": false
+        },
+        {
+          "question_id": "570",
+          "category": "position",
+          "prediction": "B",
+          "correct": true
+        },
+        {
+          "question_id": "571",
+          "category": "position",
+          "prediction": "B",
+          "correct": false
+        },
+        {
+          "question_id": "572",
+          "category": "position",
+          "prediction": "B",
+          "correct": false
+        },
+        {
+          "question_id": "573",
+          "category": "position",
+          "prediction": "B",
+          "correct": false
+        },
+        {
+          "question_id": "576",
+          "category": "position",
+          "prediction": "A",
+          "correct": false
+        },
+        {
+          "question_id": "579",
+          "category": "position",
+          "prediction": "B",
+          "correct": false
+        },
+        {
+          "question_id": "581",
+          "category": "position",
+          "prediction": "B",
+          "correct": false
+        },
+        {
+          "question_id": "582",
+          "category": "position",
+          "prediction": "B",
+          "correct": true
+        },
+        {
+          "question_id": "585",
+          "category": "position",
+          "prediction": "A",
+          "correct": true
+        },
+        {
+          "question_id": "589",
+          "category": "position",
+          "prediction": "B",
+          "correct": false
+        },
+        {
+          "question_id": "591",
+          "category": "position",
+          "prediction": "A",
+          "correct": false
+        },
+        {
+          "question_id": "593",
+          "category": "position",
+          "prediction": "B",
+          "correct": false
+        },
+        {
+          "question_id": "594",
+          "category": "position",
+          "prediction": "B",
+          "correct": true
+        },
+        {
+          "question_id": "595",
+          "category": "position",
+          "prediction": "B",
+          "correct": false
+        },
+        {
+          "question_id": "596",
+          "category": "position",
+          "prediction": "A",
+          "correct": false
+        },
+        {
+          "question_id": "599",
+          "category": "position",
+          "prediction": "B",
+          "correct": false
+        },
+        {
+          "question_id": "701",
+          "category": "ordering",
+          "prediction": "D",
+          "correct": false
+        },
+        {
+          "question_id": "707",
+          "category": "ordering",
+          "prediction": "D",
+          "correct": false
+        },
+        {
+          "question_id": "708",
+          "category": "ordering",
+          "prediction": "D",
+          "correct": false
+        },
+        {
+          "question_id": "709",
+          "category": "ordering",
+          "prediction": "D",
+          "correct": false
+        },
+        {
+          "question_id": "712",
+          "category": "ordering",
+          "prediction": "D",
+          "correct": false
+        },
+        {
+          "question_id": "715",
+          "category": "ordering",
+          "prediction": "D",
+          "correct": false
+        },
+        {
+          "question_id": "718",
+          "category": "ordering",
+          "prediction": "D",
+          "correct": false
+        },
+        {
+          "question_id": "719",
+          "category": "ordering",
+          "prediction": "D",
+          "correct": false
+        },
+        {
+          "question_id": "720",
+          "category": "ordering",
+          "prediction": "D",
+          "correct": false
+        },
+        {
+          "question_id": "721",
+          "category": "ordering",
+          "prediction": "D",
+          "correct": false
+        },
+        {
+          "question_id": "728",
+          "category": "ordering",
+          "prediction": "D",
+          "correct": false
+        },
+        {
+          "question_id": "729",
+          "category": "ordering",
+          "prediction": "D",
+          "correct": false
+        },
+        {
+          "question_id": "732",
+          "category": "ordering",
+          "prediction": "D",
+          "correct": false
+        },
+        {
+          "question_id": "733",
+          "category": "ordering",
+          "prediction": "D",
+          "correct": false
+        },
+        {
+          "question_id": "734",
+          "category": "ordering",
+          "prediction": "D",
+          "correct": false
+        },
+        {
+          "question_id": "735",
+          "category": "ordering",
+          "prediction": "D",
+          "correct": false
+        },
+        {
+          "question_id": "736",
+          "category": "ordering",
+          "prediction": "D",
+          "correct": false
+        },
+        {
+          "question_id": "741",
+          "category": "ordering",
+          "prediction": "D",
+          "correct": false
+        },
+        {
+          "question_id": "742",
+          "category": "ordering",
+          "prediction": "D",
+          "correct": false
+        },
+        {
+          "question_id": "744",
+          "category": "ordering",
+          "prediction": "D",
+          "correct": true
+        },
+        {
+          "question_id": "747",
+          "category": "ordering",
+          "prediction": "D",
+          "correct": true
+        },
+        {
+          "question_id": "749",
+          "category": "ordering",
+          "prediction": "D",
+          "correct": false
+        },
+        {
+          "question_id": "750",
+          "category": "ordering",
+          "prediction": "D",
+          "correct": false
+        },
+        {
+          "question_id": "751",
+          "category": "ordering",
+          "prediction": "D",
+          "correct": false
+        },
+        {
+          "question_id": "752",
+          "category": "ordering",
+          "prediction": "D",
+          "correct": false
+        },
+        {
+          "question_id": "755",
+          "category": "ordering",
+          "prediction": "D",
+          "correct": true
+        },
+        {
+          "question_id": "756",
+          "category": "ordering",
+          "prediction": "D",
+          "correct": true
+        },
+        {
+          "question_id": "759",
+          "category": "ordering",
+          "prediction": "D",
+          "correct": false
+        },
+        {
+          "question_id": "760",
+          "category": "ordering",
+          "prediction": "D",
+          "correct": false
+        },
+        {
+          "question_id": "763",
+          "category": "ordering",
+          "prediction": "D",
+          "correct": false
+        },
+        {
+          "question_id": "764",
+          "category": "ordering",
+          "prediction": "D",
+          "correct": false
+        },
+        {
+          "question_id": "766",
+          "category": "ordering",
+          "prediction": "D",
+          "correct": false
+        },
+        {
+          "question_id": "767",
+          "category": "ordering",
+          "prediction": "D",
+          "correct": false
+        },
+        {
+          "question_id": "769",
+          "category": "ordering",
+          "prediction": "D",
+          "correct": false
+        },
+        {
+          "question_id": "772",
+          "category": "ordering",
+          "prediction": "D",
+          "correct": true
+        },
+        {
+          "question_id": "773",
+          "category": "ordering",
+          "prediction": "D",
+          "correct": true
+        },
+        {
+          "question_id": "775",
+          "category": "ordering",
+          "prediction": "D",
+          "correct": true
+        },
+        {
+          "question_id": "776",
+          "category": "ordering",
+          "prediction": "D",
+          "correct": true
+        },
+        {
+          "question_id": "777",
+          "category": "ordering",
+          "prediction": "D",
+          "correct": false
+        },
+        {
+          "question_id": "779",
+          "category": "ordering",
+          "prediction": "D",
+          "correct": false
+        },
+        {
+          "question_id": "782",
+          "category": "ordering",
+          "prediction": "D",
+          "correct": true
+        },
+        {
+          "question_id": "783",
+          "category": "ordering",
+          "prediction": "D",
+          "correct": true
+        },
+        {
+          "question_id": "784",
+          "category": "ordering",
+          "prediction": "D",
+          "correct": true
+        },
+        {
+          "question_id": "788",
+          "category": "ordering",
+          "prediction": "D",
+          "correct": false
+        },
+        {
+          "question_id": "789",
+          "category": "ordering",
+          "prediction": "D",
+          "correct": false
+        },
+        {
+          "question_id": "791",
+          "category": "ordering",
+          "prediction": "D",
+          "correct": false
+        },
+        {
+          "question_id": "792",
+          "category": "ordering",
+          "prediction": "D",
+          "correct": false
+        },
+        {
+          "question_id": "794",
+          "category": "ordering",
+          "prediction": "D",
+          "correct": false
+        },
+        {
+          "question_id": "798",
+          "category": "ordering",
+          "prediction": "D",
+          "correct": false
+        },
+        {
+          "question_id": "800",
+          "category": "ordering",
+          "prediction": "D",
+          "correct": true
+        }
+      ]
+    }
+  ]
+}
