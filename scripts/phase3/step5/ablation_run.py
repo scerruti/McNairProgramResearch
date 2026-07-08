@@ -89,6 +89,7 @@ def load_model_and_processor():
         bnb_4bit_quant_type="nf4",
         bnb_4bit_compute_dtype=torch.bfloat16,
         bnb_4bit_use_double_quant=True,
+        llm_int8_enable_fp32_cpu_offload=True,
     )
 
     try:
@@ -103,6 +104,7 @@ def load_model_and_processor():
         quantization_config=bnb_cfg,
         attn_implementation=attn_impl,
         device_map="auto",
+        max_memory={0: "23GiB", "cpu": "6GiB"},
     )
     model.eval()
     processor = AutoProcessor.from_pretrained(MODEL_ID)

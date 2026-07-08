@@ -1,0 +1,205 @@
+#!/usr/bin/env python3
+"""
+Local structure/consistency gate for the phase3 ablation pipeline.
+
+Checks:
+  1. Required files/dirs exist
+  2. All .py files compile (syntax check)
+  3. data/phase3 JSON files parse and match expected schema
+  4. The VL model name is consistent across src/ablation_run.py and runpod_run.sh
+  5. The hardcoded GPU max_memory cap matches the GPU actually present
+
+Run: python3 validate_pipeline.py
+"""
+import json
+import re
+import subprocess
+import sys
+import py_compile
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent
+
+errors = []
+warnings = []
+
+
+def error(msg):
+    errors.append(msg)
+
+
+def warn(msg):
+    warnings.append(msg)
+
+
+REQUIRED_PATHS = [
+    "data/lego/LEGO.tsv",
+    "data/lego/images",
+    "data/phase3/test_200.json",
+    "data/phase3/step4_meta.json",
+    "results",
+    "src/ablation_run.py",
+    "runpod_run.sh",
+    "requirements.txt",
+]
+
+
+def check_structure():
+    for rel in REQUIRED_PATHS:
+        if not (ROOT / rel).exists():
+            error(f"missing required path: {rel}")
+
+    imgs = ROOT / "data/lego/images"
+    if imgs.is_dir() and not any(imgs.glob("*.png")):
+        warn("data/lego/images/ exists but contains no .png files")
+
+
+def check_python_syntax():
+    for py in ROOT.rglob("*.py"):
+        if ".ipynb_checkpoints" in py.parts:
+            continue
+        try:
+            py_compile.compile(str(py), doraise=True)
+        except py_compile.PyCompileError as e:
+            error(f"syntax error in {py.relative_to(ROOT)}: {e.msg}")
+
+
+def check_json():
+    test_path = ROOT / "data/phase3/test_200.json"
+    if test_path.exists():
+        try:
+            data = json.loads(test_path.read_text())
+            if not isinstance(data, list) or not all("question_id" in q for q in data):
+                error("test_200.json: expected a list of objects each with 'question_id'")
+        except json.JSONDecodeError as e:
+            error(f"test_200.json: invalid JSON ({e})")
+
+    meta_path = ROOT / "data/phase3/step4_meta.json"
+    if meta_path.exists():
+        try:
+            data = json.loads(meta_path.read_text())
+            layers = data.get("layers")
+            if not isinstance(layers, list):
+                error("step4_meta.json: expected a 'layers' list")
+            else:
+                required_keys = ("layer_index", "best_k", "best_silhouette", "bad_expert_indices")
+                for layer in layers:
+                    for key in required_keys:
+                        if key not in layer:
+                            error(f"step4_meta.json: layer entry missing '{key}'")
+        except json.JSONDecodeError as e:
+            error(f"step4_meta.json: invalid JSON ({e})")
+
+
+MODEL_ID_RE = re.compile(r'MODEL_ID\s*=\s*"([^"]+)"')
+REPO_ID_RE = re.compile(r'repo_id\s*=\s*"([^"]+)"')
+LOCAL_DIR_RE = re.compile(r'local_dir\s*=\s*"([^"]+)"')
+MODEL_NAME_RE = re.compile(r"Qwen3-VL-[\w-]+")
+GPU_LAYERS_RE = re.compile(r"gpu_layers=(\d+)")
+
+# Empirically observed GPU footprint per decoder layer placed on GPU 0 during
+# from_pretrained() -- covers both the final 4-bit weights and the transient
+# bf16 staging tensors that bitsandbytes doesn't free until loading completes
+# (see build_device_map()'s docstring in src/ablation_run.py for why layers
+# are capped rather than left to device_map="auto").
+OBSERVED_GIB_PER_GPU_LAYER = 1.3
+
+
+def check_model_consistency():
+    refs = {}
+    p = ROOT / "src/ablation_run.py"
+    if p.exists():
+        m = MODEL_ID_RE.search(p.read_text())
+        if m:
+            refs["src/ablation_run.py"] = m.group(1)
+
+    sh = ROOT / "runpod_run.sh"
+    if sh.exists():
+        text = sh.read_text()
+        m = REPO_ID_RE.search(text)
+        if m:
+            refs["runpod_run.sh:repo_id"] = m.group(1)
+        m = LOCAL_DIR_RE.search(text)
+        if m:
+            refs["runpod_run.sh:local_dir"] = m.group(1)
+
+    if not refs:
+        warn("no MODEL_ID/repo_id references found to cross-check")
+        return
+
+    names = {}
+    for source, value in refs.items():
+        m = MODEL_NAME_RE.search(value)
+        names[source] = m.group(0) if m else value
+
+    if len(set(names.values())) > 1:
+        error(f"VL model name mismatch across files: {names}")
+
+
+def check_gpu_vram():
+    p = ROOT / "src/ablation_run.py"
+    if not p.exists():
+        return
+    m = GPU_LAYERS_RE.search(p.read_text())
+    if not m:
+        warn("could not find gpu_layers=N in src/ablation_run.py to check")
+        return
+    gpu_layers = int(m.group(1))
+    estimated_gib = gpu_layers * OBSERVED_GIB_PER_GPU_LAYER
+
+    try:
+        out = subprocess.run(
+            ["nvidia-smi", "--query-gpu=name,memory.total", "--format=csv,noheader,nounits"],
+            capture_output=True, text=True, timeout=10,
+        )
+    except FileNotFoundError:
+        warn("nvidia-smi not found; skipping live GPU/VRAM check")
+        return
+
+    if out.returncode != 0 or not out.stdout.strip():
+        warn("nvidia-smi returned no GPU; skipping live GPU/VRAM check")
+        return
+
+    name, mem_mib = out.stdout.strip().splitlines()[0].split(",")
+    actual_gib = int(mem_mib.strip()) / 1024
+    name = name.strip()
+
+    if estimated_gib > actual_gib * 0.9:
+        error(
+            f"src/ablation_run.py sets gpu_layers={gpu_layers} (~{estimated_gib:.1f}GiB "
+            f"estimated) which leaves little to no margin on the actual GPU ({name}, "
+            f"{actual_gib:.1f}GiB) -- lower gpu_layers or expect OOM"
+        )
+    elif estimated_gib < actual_gib * 0.5:
+        warn(
+            f"src/ablation_run.py sets gpu_layers={gpu_layers} (~{estimated_gib:.1f}GiB "
+            f"estimated), well under half of the actual GPU's {actual_gib:.1f}GiB ({name}) "
+            f"-- gpu_layers could likely be raised for faster inference"
+        )
+
+
+def main():
+    check_structure()
+    check_python_syntax()
+    check_json()
+    check_model_consistency()
+    check_gpu_vram()
+
+    if warnings:
+        print("WARNINGS:")
+        for w in warnings:
+            print(f"  - {w}")
+
+    if errors:
+        print("ERRORS:")
+        for e in errors:
+            print(f"  - {e}")
+        print(f"\n{len(errors)} error(s), {len(warnings)} warning(s)")
+        sys.exit(1)
+
+    print(f"\nAll structure/model/GPU checks passed ({len(warnings)} warning(s)).")
+    sys.exit(0)
+
+
+if __name__ == "__main__":
+    main()

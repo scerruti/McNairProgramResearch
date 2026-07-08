@@ -33,6 +33,9 @@ LEGO Code/LEGO-Puzzles/outputs/
 LEGO Code/.cache/
 LEGO Code/LEGO-Puzzles/vlmeval.egg-info/
 
+# LEGO benchmark images (downloaded on pod, too large for git)
+scripts/phase3/step5/data/
+
 # Reports / logs
 LEGO_Research_Log.md
 
