@@ -167,8 +167,8 @@ def compute_split_statistics(split_name, questions):
     total_wrong = 0
 
     for category_name in sorted(EXPECTED_CATEGORIES):
-        category_questions = [q for q in questions if q["category"] == category_name]
-        category_correct = sum(1 for q in category_questions if q["correct"])
+        category_questions = [question for question in questions if question["category"] == category_name]
+        category_correct = sum(1 for question in category_questions if question["correct"])
         category_wrong = len(category_questions) - category_correct
 
         category_statistics[category_name] = {

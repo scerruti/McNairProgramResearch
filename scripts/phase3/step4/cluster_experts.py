@@ -53,21 +53,21 @@ RANDOM_SEED = 42
 
 def load_fingerprint(layer_index):
     path = STEP3_DATA_DIR / f"fingerprint_layer_{layer_index}.json"
-    with open(path) as f:
-        return json.load(f)
+    with open(path) as file_handle:
+        return json.load(file_handle)
 
 
 def load_correctness_labels():
-    with open(BINARIZED_PATH) as f:
-        questions = json.load(f)
+    with open(BINARIZED_PATH) as file_handle:
+        questions = json.load(file_handle)
     # Only the correctness label is needed here; keeping question metadata
     # out of this module avoids coupling to the binarized_routing schema.
-    return [q["correct"] for q in questions]
+    return [question["correct"] for question in questions]
 
 
 def load_step2_meta():
-    with open(STEP2_META_PATH) as f:
-        return json.load(f)
+    with open(STEP2_META_PATH) as file_handle:
+        return json.load(file_handle)
 
 
 def load_top_layers(step2_meta):
@@ -110,19 +110,19 @@ def compute_jaccard_distance_matrix(active_rows):
     Only shared activations (both selected on the same question) indicate a
     genuine similarity in routing behavior.
     """
-    arr = np.array(active_rows, dtype=bool)
-    n = len(arr)
-    dist = np.zeros((n, n))
+    bool_matrix = np.array(active_rows, dtype=bool)
+    num_active_experts = len(bool_matrix)
+    dist_matrix = np.zeros((num_active_experts, num_active_experts))
 
-    for i in range(n):
-        for j in range(i + 1, n):
-            intersection = np.sum(arr[i] & arr[j])
-            union = np.sum(arr[i] | arr[j])
-            d = 1.0 - intersection / union if union > 0 else 0.0
-            dist[i, j] = d
-            dist[j, i] = d
+    for expert_i in range(num_active_experts):
+        for expert_j in range(expert_i + 1, num_active_experts):
+            intersection = np.sum(bool_matrix[expert_i] & bool_matrix[expert_j])
+            union = np.sum(bool_matrix[expert_i] | bool_matrix[expert_j])
+            distance = 1.0 - intersection / union if union > 0 else 0.0
+            dist_matrix[expert_i, expert_j] = distance
+            dist_matrix[expert_j, expert_i] = distance
 
-    return dist
+    return dist_matrix
 
 
 # --- Clustering ---
@@ -139,23 +139,23 @@ def run_kmedoids(dist_matrix, k, seed=RANDOM_SEED):
     swapping each medoid for the cluster member that minimizes total intra-
     cluster distance. It converges when no swap improves the solution.
     """
-    n = len(dist_matrix)
+    num_active_experts = len(dist_matrix)
     rng = random.Random(seed)
-    medoids = rng.sample(range(n), k)
+    medoids = rng.sample(range(num_active_experts), k)
 
     for _ in range(KMEDOIDS_MAX_ITER):
         labels = [
-            min(range(k), key=lambda m: dist_matrix[i][medoids[m]])
-            for i in range(n)
+            min(range(k), key=lambda cluster_idx: dist_matrix[point_idx][medoids[cluster_idx]])
+            for point_idx in range(num_active_experts)
         ]
 
         new_medoids = []
         for cluster_id in range(k):
-            members = [i for i, lbl in enumerate(labels) if lbl == cluster_id]
+            members = [member_idx for member_idx, label in enumerate(labels) if label == cluster_id]
             if not members:
                 new_medoids.append(medoids[cluster_id])
             else:
-                best = min(members, key=lambda m: sum(dist_matrix[m][j] for j in members))
+                best = min(members, key=lambda candidate_idx: sum(dist_matrix[candidate_idx][other_idx] for other_idx in members))
                 new_medoids.append(best)
 
         if new_medoids == medoids:
@@ -217,9 +217,9 @@ def score_cluster(member_rows, correctness_labels, base_error_rate):
     """
     total = 0
     wrong = 0
-    for q_idx, correct in enumerate(correctness_labels):
+    for question_idx, correct in enumerate(correctness_labels):
         for row in member_rows:
-            if row[q_idx] == 1:
+            if row[question_idx] == 1:
                 total += 1
                 if not correct:
                     wrong += 1
@@ -237,7 +237,7 @@ def score_cluster(member_rows, correctness_labels, base_error_rate):
 def score_all_clusters(labels, k, active_rows, correctness_labels, base_error_rate):
     cluster_stats = []
     for cluster_id in range(k):
-        member_rows = [active_rows[i] for i, lbl in enumerate(labels) if lbl == cluster_id]
+        member_rows = [active_rows[member_idx] for member_idx, label in enumerate(labels) if label == cluster_id]
         if not member_rows:
             cluster_stats.append(None)
         else:
@@ -256,7 +256,7 @@ def identify_bad_experts(labels, cluster_stats, active_indices):
     bad_expert_indices = []
     for cluster_id, stats in enumerate(cluster_stats):
         if stats and stats["above_baseline"]:
-            members = [active_indices[i] for i, lbl in enumerate(labels) if lbl == cluster_id]
+            members = [active_indices[member_idx] for member_idx, label in enumerate(labels) if label == cluster_id]
             bad_expert_indices.extend(members)
     return bad_expert_indices
 
@@ -302,9 +302,9 @@ def plot_mds_clusters(dist_matrix, labels, cluster_stats, active_indices, layer_
     ).fit_transform(dist_matrix)
 
     bad_expert_set = set(
-        active_indices[i]
-        for i, lbl in enumerate(labels)
-        if cluster_stats[lbl] and cluster_stats[lbl]["above_baseline"]
+        active_indices[member_idx]
+        for member_idx, label in enumerate(labels)
+        if cluster_stats[label] and cluster_stats[label]["above_baseline"]
     )
 
     cluster_ids = sorted(set(labels))
@@ -313,20 +313,20 @@ def plot_mds_clusters(dist_matrix, labels, cluster_stats, active_indices, layer_
     fig, ax = plt.subplots(figsize=(8, 6))
 
     for cluster_id in cluster_ids:
-        member_positions = [(coords[i, 0], coords[i, 1]) for i, lbl in enumerate(labels) if lbl == cluster_id]
-        xs = [p[0] for p in member_positions]
-        ys = [p[1] for p in member_positions]
+        member_positions = [(coords[member_idx, 0], coords[member_idx, 1]) for member_idx, label in enumerate(labels) if label == cluster_id]
+        xs = [position[0] for position in member_positions]
+        ys = [position[1] for position in member_positions]
         color = colors[cluster_id % len(colors)]
 
         stats = cluster_stats[cluster_id]
-        wr = f"{stats['wrong_rate']:.2f}" if stats else "n/a"
-        label = f"Cluster {cluster_id} (wr={wr})"
+        wrong_rate_str = f"{stats['wrong_rate']:.2f}" if stats else "n/a"
+        cluster_label = f"Cluster {cluster_id} (wr={wrong_rate_str})"
 
-        ax.scatter(xs, ys, c=[color], label=label, s=60, zorder=2)
+        ax.scatter(xs, ys, c=[color], label=cluster_label, s=60, zorder=2)
 
         # Mark bad-cluster experts with X so they stand out without a separate legend entry.
-        bad_xs = [coords[i, 0] for i, lbl in enumerate(labels) if lbl == cluster_id and active_indices[i] in bad_expert_set]
-        bad_ys = [coords[i, 1] for i, lbl in enumerate(labels) if lbl == cluster_id and active_indices[i] in bad_expert_set]
+        bad_xs = [coords[member_idx, 0] for member_idx, label in enumerate(labels) if label == cluster_id and active_indices[member_idx] in bad_expert_set]
+        bad_ys = [coords[member_idx, 1] for member_idx, label in enumerate(labels) if label == cluster_id and active_indices[member_idx] in bad_expert_set]
         if bad_xs:
             ax.scatter(bad_xs, bad_ys, c="black", marker="x", s=80, linewidths=1.5, zorder=3)
 
@@ -352,16 +352,16 @@ def save_layer_results(layer_index, active_indices, best_k, k_results, bad_exper
         "bad_expert_indices": bad_expert_indices,
         "all_k_results": {
             str(k): {
-                "silhouette": v["silhouette"],
-                "medoid_expert_indices": [active_indices[m] for m in v["medoids"]],
-                "cluster_stats": v["cluster_stats"],
+                "silhouette": cluster_result["silhouette"],
+                "medoid_expert_indices": [active_indices[medoid_idx] for medoid_idx in cluster_result["medoids"]],
+                "cluster_stats": cluster_result["cluster_stats"],
             }
-            for k, v in k_results.items()
+            for k, cluster_result in k_results.items()
         },
     }
     out_path = STEP4_OUTPUT_DIR / f"cluster_results_layer_{layer_index}.json"
-    with open(out_path, "w") as f:
-        json.dump(result, f, indent=2)
+    with open(out_path, "w") as file_handle:
+        json.dump(result, file_handle, indent=2)
     print(f"  Saved: {out_path}")
     return result
 
@@ -397,12 +397,12 @@ def process_layer(layer_index, correctness_labels, base_error_rate):
     for k, result in k_results.items():
         stats = score_all_clusters(result["labels"], k, active_rows, correctness_labels, base_error_rate)
         result["cluster_stats"] = stats
-        sil = result["silhouette"]
-        print(f"  k={k}: silhouette={sil:.4f}")
-        for cid, s in enumerate(stats):
-            if s:
-                flag = " <<< BAD" if s["above_baseline"] else ""
-                print(f"    cluster {cid}: {s['expert_count']} experts, wrong_rate={s['wrong_rate']:.3f}{flag}")
+        silhouette = result["silhouette"]
+        print(f"  k={k}: silhouette={silhouette:.4f}")
+        for cluster_id, cluster_stat in enumerate(stats):
+            if cluster_stat:
+                flag = " <<< BAD" if cluster_stat["above_baseline"] else ""
+                print(f"    cluster {cluster_id}: {cluster_stat['expert_count']} experts, wrong_rate={cluster_stat['wrong_rate']:.3f}{flag}")
 
     best_labels = k_results[best_k]["labels"]
     best_cluster_stats = k_results[best_k]["cluster_stats"]
@@ -443,23 +443,23 @@ def main():
     print("SUMMARY")
     print("=" * 60)
 
-    meta = {"layers": []}
-    for r in all_results:
+    step4_meta = {"layers": []}
+    for layer_result in all_results:
         print(
-            f"Layer {r['layer_index']}: best_k={r['best_k']}, "
-            f"silhouette={r['best_silhouette']:.4f}, "
-            f"bad_experts={r['bad_expert_indices']}"
+            f"Layer {layer_result['layer_index']}: best_k={layer_result['best_k']}, "
+            f"silhouette={layer_result['best_silhouette']:.4f}, "
+            f"bad_experts={layer_result['bad_expert_indices']}"
         )
-        meta["layers"].append({
-            "layer_index": r["layer_index"],
-            "best_k": r["best_k"],
-            "best_silhouette": r["best_silhouette"],
-            "bad_expert_indices": r["bad_expert_indices"],
+        step4_meta["layers"].append({
+            "layer_index": layer_result["layer_index"],
+            "best_k": layer_result["best_k"],
+            "best_silhouette": layer_result["best_silhouette"],
+            "bad_expert_indices": layer_result["bad_expert_indices"],
         })
 
     meta_path = STEP4_OUTPUT_DIR / "step4_meta.json"
-    with open(meta_path, "w") as f:
-        json.dump(meta, f, indent=2)
+    with open(meta_path, "w") as file_handle:
+        json.dump(step4_meta, file_handle, indent=2)
     print(f"\nSaved: {meta_path}")
     print("\nStep 4 complete.")
 

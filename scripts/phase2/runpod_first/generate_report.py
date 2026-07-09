@@ -80,8 +80,8 @@ def _add_table(ax, df, col_labels, col_widths, row_colors=None, fontsize=8):
     tbl.auto_set_font_size(False)
     tbl.set_fontsize(fontsize)
     tbl.scale(1, 1.35)
-    for (r, c), cell in tbl.get_celld().items():
-        if r == 0:
+    for (row_idx, col_idx), cell in tbl.get_celld().items():
+        if row_idx == 0:
             cell.set_facecolor(DARK)
             cell.set_text_props(color="white", fontweight="bold")
         cell.set_edgecolor("#DDDDDD")
@@ -93,17 +93,17 @@ def _add_table(ax, df, col_labels, col_widths, row_colors=None, fontsize=8):
 # ─────────────────────────────────────────────────────────────────────────────
 
 print("Loading results…")
-with open(RESULTS_JSON) as f:
-    results = json.load(f)
+with open(RESULTS_JSON) as results_file:
+    results = json.load(results_file)
 
 df_rank  = pd.read_csv(RANK_CSV)
 df_board = pd.read_csv(BOARD_CSV)
 
 category_accuracy = {}
 for cat in CATEGORIES:
-    sub = [r for r in results if r["category"] == cat]
-    category_accuracy[cat] = sum(r["correct"] for r in sub) / len(sub) if sub else 0.0
-overall_acc = sum(r["correct"] for r in results) / len(results)
+    category_results = [record for record in results if record["category"] == cat]
+    category_accuracy[cat] = sum(record["correct"] for record in category_results) / len(category_results) if category_results else 0.0
+overall_acc = sum(record["correct"] for record in results) / len(results)
 
 # Heatmap arrays  [num_layers × num_experts]
 NUM_LAYERS  = 48
@@ -111,15 +111,15 @@ NUM_EXPERTS = 128
 
 category_heatmaps = {}
 for cat in CATEGORIES:
-    arr = np.zeros((NUM_LAYERS, NUM_EXPERTS), dtype=np.float64)
-    n   = 0
-    for r in results:
-        if r["category"] != cat:
+    heatmap_sum = np.zeros((NUM_LAYERS, NUM_EXPERTS), dtype=np.float64)
+    num_category_questions = 0
+    for record in results:
+        if record["category"] != cat:
             continue
-        n += 1
-        for li_str, weights in r["visual_routing"].items():
-            arr[int(li_str)] += np.asarray(weights)
-    category_heatmaps[cat] = arr / n if n > 0 else arr
+        num_category_questions += 1
+        for layer_idx_str, weights in record["visual_routing"].items():
+            heatmap_sum[int(layer_idx_str)] += np.asarray(weights)
+    category_heatmaps[cat] = heatmap_sum / num_category_questions if num_category_questions > 0 else heatmap_sum
 
 height_rotation_diff = category_heatmaps["height"] - category_heatmaps["rotation"]
 
@@ -147,18 +147,18 @@ def page_cover(pdf):
     xs = [0.07, 0.295, 0.52, 0.745]
     ys = 0.60
     for i, cat in enumerate(CATEGORIES):
-        x = xs[i]
-        ax.add_patch(FancyBboxPatch((x, ys), card_w, card_h, linewidth=1.5,
+        card_x = xs[i]
+        ax.add_patch(FancyBboxPatch((card_x, ys), card_w, card_h, linewidth=1.5,
                                     edgecolor=CAT_COLORS[cat],
                                     facecolor=LIGHT,
                                     boxstyle="round,pad=0.01"))
-        fig.text(x + card_w/2, ys + card_h - 0.025, cat.upper(),
+        fig.text(card_x + card_w/2, ys + card_h - 0.025, cat.upper(),
                  ha="center", fontsize=9, fontweight="bold",
                  color=CAT_COLORS[cat])
-        fig.text(x + card_w/2, ys + card_h/2 - 0.008,
+        fig.text(card_x + card_w/2, ys + card_h/2 - 0.008,
                  f"{category_accuracy[cat]:.1%}", ha="center",
                  fontsize=20, fontweight="bold", color=DARK)
-        fig.text(x + card_w/2, ys + 0.015, "accuracy",
+        fig.text(card_x + card_w/2, ys + 0.015, "accuracy",
                  ha="center", fontsize=8, color="#777777")
 
     # Overall
@@ -273,8 +273,8 @@ def page_leaderboard(pdf):
 
     # Alternate row shading
     row_colors = []
-    for r in range(len(display)):
-        shade = "#EEF2FF" if r % 2 == 0 else "white"
+    for row_idx in range(len(display)):
+        shade = "#EEF2FF" if row_idx % 2 == 0 else "white"
         row_colors.append([shade] * 5)
 
     _add_table(ax, display, col_labels, col_widths, row_colors, fontsize=8)
@@ -304,20 +304,20 @@ def page_specialists(pdf):
         ax.axis("off")
 
         delta_col = f"delta_{cat}"
-        sub = (df_rank[df_rank["mean_activation_correct"] >= 0.003]
+        specialist_experts = (df_rank[df_rank["mean_activation_correct"] >= 0.003]
                .nlargest(10, delta_col)
                [["expert_label", "mean_activation_correct", delta_col]]
                .copy())
-        sub["mean_activation_correct"] = sub["mean_activation_correct"].map("{:.5f}".format)
-        sub[delta_col]                 = sub[delta_col].map("{:+.5f}".format)
+        specialist_experts["mean_activation_correct"] = specialist_experts["mean_activation_correct"].map("{:.5f}".format)
+        specialist_experts[delta_col]                 = specialist_experts[delta_col].map("{:+.5f}".format)
 
         col_labels = ["Expert", "Act (correct)", f"Δ {cat}"]
         col_widths = [0.18, 0.20, 0.18]
         row_colors = []
-        for r in range(len(sub)):
-            shade = "#EEF2FF" if r % 2 == 0 else "white"
+        for row_idx in range(len(specialist_experts)):
+            shade = "#EEF2FF" if row_idx % 2 == 0 else "white"
             row_colors.append([shade] * 3)
-        _add_table(ax, sub, col_labels, col_widths, row_colors, fontsize=8)
+        _add_table(ax, specialist_experts, col_labels, col_widths, row_colors, fontsize=8)
 
     pdf.savefig(fig, bbox_inches="tight")
     plt.close(fig)
@@ -381,7 +381,7 @@ def page_heatmaps(pdf):
     # Find top-32 most active experts globally to keep heatmaps readable
     global_mean = sum(category_heatmaps[c] for c in CATEGORIES) / len(CATEGORIES)
     top_32_expert_indices = np.argsort(global_mean.mean(axis=0))[-32:][::-1]
-    top_32_expert_labels = [f"E{e}" for e in top_32_expert_indices]
+    top_32_expert_labels = [f"E{expert_idx}" for expert_idx in top_32_expert_indices]
 
     fig, axes = plt.subplots(2, 2, figsize=(8.5, 11))
     fig.suptitle("Visual Token Expert Activation Heatmaps\n"
@@ -391,11 +391,11 @@ def page_heatmaps(pdf):
     vmax = max(category_heatmaps[c][:, top_32_expert_indices].max() for c in CATEGORIES)
 
     for ax, cat in zip(axes.flat, CATEGORIES):
-        data = category_heatmaps[cat][:, top_32_expert_indices]
-        sns.heatmap(data, ax=ax, cmap="YlOrRd",
+        category_heatmap_subset = category_heatmaps[cat][:, top_32_expert_indices]
+        sns.heatmap(category_heatmap_subset, ax=ax, cmap="YlOrRd",
                     vmin=0, vmax=vmax,
                     xticklabels=top_32_expert_labels,
-                    yticklabels=[str(l) if l % 8 == 0 else "" for l in range(NUM_LAYERS)],
+                    yticklabels=[str(layer_idx) if layer_idx % 8 == 0 else "" for layer_idx in range(NUM_LAYERS)],
                     linewidths=0, cbar=True,
                     cbar_kws={"shrink": 0.6, "label": "routing weight"})
         ax.set_title(f"{cat.upper()}  (acc={category_accuracy[cat]:.1%})",
@@ -418,7 +418,7 @@ def page_heatmaps(pdf):
 def page_diff_heatmap(pdf):
     global_mean = sum(category_heatmaps[c] for c in CATEGORIES) / len(CATEGORIES)
     top_48_expert_indices = np.argsort(global_mean.mean(axis=0))[-48:][::-1]
-    top_48_expert_labels = [f"E{e}" for e in top_48_expert_indices]
+    top_48_expert_labels = [f"E{expert_idx}" for expert_idx in top_48_expert_indices]
 
     fig, axes = plt.subplots(1, 2, figsize=(8.5, 11))
     page_header(fig, "Height vs Rotation - Expert Specialisation",
@@ -429,7 +429,7 @@ def page_diff_heatmap(pdf):
     sns.heatmap(height_rotation_diff[:, top_48_expert_indices], ax=axes[0], cmap="coolwarm",
                 vmin=-vabs, vmax=vabs,
                 xticklabels=top_48_expert_labels,
-                yticklabels=[str(l) if l % 8 == 0 else "" for l in range(NUM_LAYERS)],
+                yticklabels=[str(layer_idx) if layer_idx % 8 == 0 else "" for layer_idx in range(NUM_LAYERS)],
                 linewidths=0, cbar=True,
                 cbar_kws={"shrink": 0.5, "label": "Height − Rotation"})
     axes[0].set_title("Height − Rotation difference\n(top-48 experts)", fontweight="bold")
@@ -443,8 +443,8 @@ def page_diff_heatmap(pdf):
     height_top_5_experts = np.argsort(diff_by_expert)[-5:][::-1]
     rotation_top_5_experts  = np.argsort(diff_by_expert)[:5]
 
-    labels = ([f"E{e}\n(H)" for e in height_top_5_experts] +
-              [f"E{e}\n(R)" for e in rotation_top_5_experts])
+    labels = ([f"E{expert_idx}\n(H)" for expert_idx in height_top_5_experts] +
+              [f"E{expert_idx}\n(R)" for expert_idx in rotation_top_5_experts])
     vals   = (list(diff_by_expert[height_top_5_experts]) +
               list(diff_by_expert[rotation_top_5_experts]))
     colors = ["#4C72B0"] * 5 + ["#C44E52"] * 5
@@ -473,12 +473,12 @@ def page_scatter(pdf):
 
     for ax, cat in zip(axes.flat, CATEGORIES):
         delta_col = f"delta_{cat}"
-        sub = df_rank[df_rank["mean_activation_correct"] >= 0.001].copy()
+        category_experts = df_rank[df_rank["mean_activation_correct"] >= 0.001].copy()
 
-        sc = ax.scatter(
-            sub["mean_activation_correct"],
-            sub[delta_col],
-            c=sub[delta_col],
+        scatter_plot = ax.scatter(
+            category_experts["mean_activation_correct"],
+            category_experts[delta_col],
+            c=category_experts[delta_col],
             cmap="RdYlGn",
             s=6, alpha=0.55, linewidths=0,
         )
@@ -487,13 +487,13 @@ def page_scatter(pdf):
         ax.set_xlabel("Mean activation (correct answers)", fontsize=8)
         ax.set_ylabel(f"delta_{cat}", fontsize=8)
         ax.grid(True, alpha=0.4)
-        plt.colorbar(sc, ax=ax, shrink=0.7, label="Δ value")
+        plt.colorbar(scatter_plot, ax=ax, shrink=0.7, label="Δ value")
 
         # Label top-3 in upper-right
-        top3 = sub.nlargest(3, delta_col)
-        for _, r in top3.iterrows():
-            ax.annotate(r["expert_label"],
-                        (r["mean_activation_correct"], r[delta_col]),
+        top_3_experts = category_experts.nlargest(3, delta_col)
+        for _, expert_row in top_3_experts.iterrows():
+            ax.annotate(expert_row["expert_label"],
+                        (expert_row["mean_activation_correct"], expert_row[delta_col]),
                         fontsize=6, xytext=(4, 2), textcoords="offset points",
                         color=DARK)
 
@@ -553,10 +553,10 @@ def page_layer_depth(pdf):
 
 print(f"Generating {OUTPUT_PDF} …")
 with PdfPages(OUTPUT_PDF) as pdf:
-    meta = pdf.infodict()
-    meta["Title"]   = f"MoE Expert Routing Analysis - {MODEL_NAME}"
-    meta["Subject"] = "LEGOLite 3D Spatial Reasoning Benchmark"
-    meta["Author"]  = "lego_lite_moe_analysis.py"
+    pdf_metadata = pdf.infodict()
+    pdf_metadata["Title"]   = f"MoE Expert Routing Analysis - {MODEL_NAME}"
+    pdf_metadata["Subject"] = "LEGOLite 3D Spatial Reasoning Benchmark"
+    pdf_metadata["Author"]  = "lego_lite_moe_analysis.py"
 
     page_cover(pdf)
     page_accuracy(pdf)

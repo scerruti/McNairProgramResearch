@@ -241,7 +241,7 @@ def compute_layer_scores(binarized_questions, base_error_rate):
         layer_scores[layer_index] = {
             "average_z_score": round(average_z_score, 4),
             "experts_above_z2": experts_above_z2_count,
-            "expert_z_scores": [round(z, 4) for z in expert_z_scores],
+            "expert_z_scores": [round(score, 4) for score in expert_z_scores],
         }
 
     return layer_scores
@@ -291,11 +291,11 @@ def plot_layer_scores(layer_scores, output_path):
     top_5_worst_indices = {layer_index for layer_index, _ in ranked_layers[:5]}
 
     layer_indices = list(range(LAYERS_COUNT))
-    z_scores = [layer_scores[i]["average_z_score"] for i in layer_indices]
+    z_scores = [layer_scores[layer_index]["average_z_score"] for layer_index in layer_indices]
 
     bar_colors = [
-        "#d32f2f" if i in top_5_worst_indices else "#1976d2"
-        for i in layer_indices
+        "#d32f2f" if layer_index in top_5_worst_indices else "#1976d2"
+        for layer_index in layer_indices
     ]
 
     fig, ax = plt.subplots(figsize=(16, 6))
@@ -372,7 +372,7 @@ def main():
     # Save full layer scores (including per-expert z-scores for Step 3).
     layer_scores_path = STEP2_OUTPUT_DIR / "layer_scores.json"
     # Convert int keys to strings for JSON serialization.
-    serializable_scores = {str(k): v for k, v in layer_scores.items()}
+    serializable_scores = {str(layer_index): scores for layer_index, scores in layer_scores.items()}
     with open(layer_scores_path, "w") as file_handle:
         json.dump(serializable_scores, file_handle, indent=2)
     print(f"Saved: {layer_scores_path}")
@@ -387,7 +387,7 @@ def main():
             "category": question["category"],
             "correct": question["correct"],
             "binarized_routing": {
-                str(k): v for k, v in question["binarized_routing"].items()
+                str(layer_index): binary_vector for layer_index, binary_vector in question["binarized_routing"].items()
             },
         })
     with open(binarized_path, "w") as file_handle:

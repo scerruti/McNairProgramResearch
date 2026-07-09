@@ -62,42 +62,42 @@ NUM_EXPERTS = 128
 # ─────────────────────────────────────────────────────────────────────────────
 
 print("Loading run2 results…")
-with open(RESULTS_JSON) as f:
-    results = json.load(f)
+with open(RESULTS_JSON) as results_file:
+    results = json.load(results_file)
 
 df_rank  = pd.read_csv(RANK_CSV)
 df_board = pd.read_csv(BOARD_CSV)
 
 category_accuracy = {}
 for cat in CATEGORIES:
-    sub = [r for r in results if r["category"] == cat]
-    category_accuracy[cat] = sum(r["correct"] for r in sub) / len(sub) if sub else 0.0
-overall_acc = sum(r["correct"] for r in results) / len(results)
+    category_results = [record for record in results if record["category"] == cat]
+    category_accuracy[cat] = sum(record["correct"] for record in category_results) / len(category_results) if category_results else 0.0
+overall_acc = sum(record["correct"] for record in results) / len(results)
 
 category_heatmaps = {}
 for cat in CATEGORIES:
-    arr = np.zeros((NUM_LAYERS, NUM_EXPERTS), dtype=np.float64)
-    n   = 0
-    for r in results:
-        if r["category"] != cat:
+    heatmap_sum = np.zeros((NUM_LAYERS, NUM_EXPERTS), dtype=np.float64)
+    num_category_questions = 0
+    for record in results:
+        if record["category"] != cat:
             continue
-        n += 1
-        for li_str, weights in r["visual_routing"].items():
-            arr[int(li_str)] += np.asarray(weights)
-    category_heatmaps[cat] = arr / n if n > 0 else arr
+        num_category_questions += 1
+        for layer_idx_str, weights in record["visual_routing"].items():
+            heatmap_sum[int(layer_idx_str)] += np.asarray(weights)
+    category_heatmaps[cat] = heatmap_sum / num_category_questions if num_category_questions > 0 else heatmap_sum
 
 height_rotation_diff = category_heatmaps["height"] - category_heatmaps["rotation"]
 
 # Load run1 for comparison
 print("Loading run1 results for comparison…")
-with open(RUN1_DIR / "results.json") as f:
-    results_r1 = json.load(f)
+with open(RUN1_DIR / "results.json") as run1_results_file:
+    results_r1 = json.load(run1_results_file)
 
 category_accuracy_run1 = {}
 for cat in CATEGORIES:
-    sub = [r for r in results_r1 if r["category"] == cat]
-    category_accuracy_run1[cat] = sum(r["correct"] for r in sub) / len(sub) if sub else 0.0
-overall_accuracy_run1 = sum(r["correct"] for r in results_r1) / len(results_r1)
+    category_results_r1 = [record for record in results_r1 if record["category"] == cat]
+    category_accuracy_run1[cat] = sum(record["correct"] for record in category_results_r1) / len(category_results_r1) if category_results_r1 else 0.0
+overall_accuracy_run1 = sum(record["correct"] for record in results_r1) / len(results_r1)
 
 df_board_r1 = pd.read_csv(RUN1_DIR / "spatial_expert_leaderboard.csv")
 df_rank_r1  = pd.read_csv(RUN1_DIR / "expert_success_rates.csv")
@@ -130,8 +130,8 @@ def _add_table(ax, df, col_labels, col_widths, row_colors=None, fontsize=8):
     tbl.auto_set_font_size(False)
     tbl.set_fontsize(fontsize)
     tbl.scale(1, 1.35)
-    for (r, c), cell in tbl.get_celld().items():
-        if r == 0:
+    for (row_idx, col_idx), cell in tbl.get_celld().items():
+        if row_idx == 0:
             cell.set_facecolor(DARK)
             cell.set_text_props(color="white", fontweight="bold")
         cell.set_edgecolor("#DDDDDD")
@@ -158,19 +158,19 @@ def page_cover(pdf):
     xs = [0.07, 0.295, 0.52, 0.745]
     ys = 0.60
     for i, cat in enumerate(CATEGORIES):
-        x = xs[i]
-        ax.add_patch(FancyBboxPatch((x, ys), card_w, card_h, linewidth=1.5,
+        card_x = xs[i]
+        ax.add_patch(FancyBboxPatch((card_x, ys), card_w, card_h, linewidth=1.5,
                                     edgecolor=CAT_COLORS[cat], facecolor=LIGHT,
                                     boxstyle="round,pad=0.01"))
-        fig.text(x + card_w/2, ys + card_h - 0.025, cat.upper(),
+        fig.text(card_x + card_w/2, ys + card_h - 0.025, cat.upper(),
                  ha="center", fontsize=9, fontweight="bold", color=CAT_COLORS[cat])
-        fig.text(x + card_w/2, ys + card_h/2 - 0.008,
+        fig.text(card_x + card_w/2, ys + card_h/2 - 0.008,
                  f"{category_accuracy[cat]:.1%}", ha="center",
                  fontsize=20, fontweight="bold", color=DARK)
         delta = category_accuracy[cat] - category_accuracy_run1[cat]
         delta_str = f"{'↑' if delta >= 0 else '↓'}{abs(delta):.1%} vs Run 1"
         delta_color = "#2ecc71" if delta >= 0 else "#e74c3c"
-        fig.text(x + card_w/2, ys + 0.015, delta_str,
+        fig.text(card_x + card_w/2, ys + 0.015, delta_str,
                  ha="center", fontsize=7.5, color=delta_color)
 
     ax.add_patch(FancyBboxPatch((0.35, 0.46), 0.30, 0.10, linewidth=2,
@@ -275,7 +275,7 @@ def page_leaderboard(pdf):
 
     col_labels = ["Rank", "Expert", "Act (correct)", "Act (incorrect)", "Success Δ"]
     col_widths = [0.06, 0.15, 0.18, 0.20, 0.14]
-    row_colors = [["#EEF2FF" if r % 2 == 0 else "white"] * 5 for r in range(len(display))]
+    row_colors = [["#EEF2FF" if row_idx % 2 == 0 else "white"] * 5 for row_idx in range(len(display))]
     _add_table(ax, display, col_labels, col_widths, row_colors, fontsize=8)
 
     pdf.savefig(fig, bbox_inches="tight")
@@ -303,17 +303,17 @@ def page_specialists(pdf):
         ax.axis("off")
 
         delta_col = f"delta_{cat}"
-        sub = (df_rank[df_rank["mean_activation_correct"] >= 0.003]
+        specialist_experts = (df_rank[df_rank["mean_activation_correct"] >= 0.003]
                .nlargest(10, delta_col)
                [["expert_label", "mean_activation_correct", delta_col]]
                .copy())
-        sub["mean_activation_correct"] = sub["mean_activation_correct"].map("{:.5f}".format)
-        sub[delta_col]                 = sub[delta_col].map("{:+.5f}".format)
+        specialist_experts["mean_activation_correct"] = specialist_experts["mean_activation_correct"].map("{:.5f}".format)
+        specialist_experts[delta_col]                 = specialist_experts[delta_col].map("{:+.5f}".format)
 
         col_labels = ["Expert", "Act (correct)", f"Δ {cat}"]
         col_widths = [0.18, 0.20, 0.18]
-        row_colors = [["#EEF2FF" if r % 2 == 0 else "white"] * 3 for r in range(len(sub))]
-        _add_table(ax, sub, col_labels, col_widths, row_colors, fontsize=8)
+        row_colors = [["#EEF2FF" if row_idx % 2 == 0 else "white"] * 3 for row_idx in range(len(specialist_experts))]
+        _add_table(ax, specialist_experts, col_labels, col_widths, row_colors, fontsize=8)
 
     pdf.savefig(fig, bbox_inches="tight")
     plt.close(fig)
@@ -376,7 +376,7 @@ def page_ordering(pdf):
 def page_heatmaps(pdf):
     global_mean = sum(category_heatmaps[c] for c in CATEGORIES) / len(CATEGORIES)
     top_32_expert_indices = np.argsort(global_mean.mean(axis=0))[-32:][::-1]
-    top_32_expert_labels = [f"E{e}" for e in top_32_expert_indices]
+    top_32_expert_labels = [f"E{expert_idx}" for expert_idx in top_32_expert_indices]
 
     fig, axes = plt.subplots(2, 2, figsize=(8.5, 11))
     fig.suptitle("Visual Token Expert Activation Heatmaps - Run 2\n"
@@ -386,11 +386,11 @@ def page_heatmaps(pdf):
     vmax = max(category_heatmaps[c][:, top_32_expert_indices].max() for c in CATEGORIES)
 
     for ax, cat in zip(axes.flat, CATEGORIES):
-        data = category_heatmaps[cat][:, top_32_expert_indices]
-        sns.heatmap(data, ax=ax, cmap="YlOrRd",
+        category_heatmap_subset = category_heatmaps[cat][:, top_32_expert_indices]
+        sns.heatmap(category_heatmap_subset, ax=ax, cmap="YlOrRd",
                     vmin=0, vmax=vmax,
                     xticklabels=top_32_expert_labels,
-                    yticklabels=[str(l) if l % 8 == 0 else "" for l in range(NUM_LAYERS)],
+                    yticklabels=[str(layer_idx) if layer_idx % 8 == 0 else "" for layer_idx in range(NUM_LAYERS)],
                     linewidths=0, cbar=True,
                     cbar_kws={"shrink": 0.6, "label": "Mean routing weight"})
         ax.set_title(f"{cat.upper()}  (acc={category_accuracy[cat]:.1%})",
@@ -413,7 +413,7 @@ def page_heatmaps(pdf):
 def page_diff_heatmap(pdf):
     global_mean = sum(category_heatmaps[c] for c in CATEGORIES) / len(CATEGORIES)
     top_48_expert_indices = np.argsort(global_mean.mean(axis=0))[-48:][::-1]
-    top_48_expert_labels = [f"E{e}" for e in top_48_expert_indices]
+    top_48_expert_labels = [f"E{expert_idx}" for expert_idx in top_48_expert_indices]
 
     fig, axes = plt.subplots(1, 2, figsize=(8.5, 11))
     page_header(fig, "Height vs Rotation - Expert Specialisation",
@@ -424,7 +424,7 @@ def page_diff_heatmap(pdf):
     sns.heatmap(height_rotation_diff[:, top_48_expert_indices], ax=axes[0], cmap="coolwarm",
                 vmin=-vabs, vmax=vabs,
                 xticklabels=top_48_expert_labels,
-                yticklabels=[str(l) if l % 8 == 0 else "" for l in range(NUM_LAYERS)],
+                yticklabels=[str(layer_idx) if layer_idx % 8 == 0 else "" for layer_idx in range(NUM_LAYERS)],
                 linewidths=0, cbar=True,
                 cbar_kws={"shrink": 0.5, "label": "Height routing − Rotation routing"})
     axes[0].set_title("Height − Rotation difference\n(top-48 experts)", fontweight="bold")
@@ -437,8 +437,8 @@ def page_diff_heatmap(pdf):
     height_top_5_experts = np.argsort(diff_by_expert)[-5:][::-1]
     rotation_top_5_experts  = np.argsort(diff_by_expert)[:5]
 
-    labels = ([f"E{e}\n(H)" for e in height_top_5_experts] +
-              [f"E{e}\n(R)" for e in rotation_top_5_experts])
+    labels = ([f"E{expert_idx}\n(H)" for expert_idx in height_top_5_experts] +
+              [f"E{expert_idx}\n(R)" for expert_idx in rotation_top_5_experts])
     vals   = (list(diff_by_expert[height_top_5_experts]) +
               list(diff_by_expert[rotation_top_5_experts]))
     colors = ["#4C72B0"] * 5 + ["#C44E52"] * 5
@@ -469,12 +469,12 @@ def page_scatter(pdf):
 
     for ax, cat in zip(axes.flat, CATEGORIES):
         delta_col = f"delta_{cat}"
-        sub = df_rank[df_rank["mean_activation_correct"] >= 0.001].copy()
+        category_experts = df_rank[df_rank["mean_activation_correct"] >= 0.001].copy()
 
-        sc = ax.scatter(
-            sub["mean_activation_correct"],
-            sub[delta_col],
-            c=sub[delta_col],
+        scatter_plot = ax.scatter(
+            category_experts["mean_activation_correct"],
+            category_experts[delta_col],
+            c=category_experts[delta_col],
             cmap="RdYlGn",
             s=6, alpha=0.55, linewidths=0,
         )
@@ -484,12 +484,12 @@ def page_scatter(pdf):
         ax.set_ylabel(f"Success Δ for {cat}\n(correct activation − incorrect activation)",
                       fontsize=8)
         ax.grid(True, alpha=0.4)
-        plt.colorbar(sc, ax=ax, shrink=0.7, label="Δ value")
+        plt.colorbar(scatter_plot, ax=ax, shrink=0.7, label="Δ value")
 
-        top3 = sub.nlargest(3, delta_col)
-        for _, r in top3.iterrows():
-            ax.annotate(r["expert_label"],
-                        (r["mean_activation_correct"], r[delta_col]),
+        top_3_experts = category_experts.nlargest(3, delta_col)
+        for _, expert_row in top_3_experts.iterrows():
+            ax.annotate(expert_row["expert_label"],
+                        (expert_row["mean_activation_correct"], expert_row[delta_col]),
                         fontsize=6, xytext=(4, 2), textcoords="offset points",
                         color=DARK)
 
@@ -513,16 +513,16 @@ def page_comparison(pdf):
 
     # ── Grouped bar: accuracy per category both runs ──────────────────────────
     ax_bar = fig.add_subplot(gs[0, :])
-    x      = np.arange(len(CATEGORIES) + 1)
+    x_positions = np.arange(len(CATEGORIES) + 1)
     cats_w_overall = CATEGORIES + ["overall"]
     r1_vals = [category_accuracy_run1[c] for c in CATEGORIES] + [overall_accuracy_run1]
     r2_vals = [category_accuracy[c]    for c in CATEGORIES] + [overall_acc]
-    w = 0.35
-    bars1 = ax_bar.bar(x - w/2, r1_vals, w, label="Run 1", color="#7FB3D3",
+    bar_width = 0.35
+    bars1 = ax_bar.bar(x_positions - bar_width/2, r1_vals, bar_width, label="Run 1", color="#7FB3D3",
                        edgecolor="white", zorder=3)
-    bars2 = ax_bar.bar(x + w/2, r2_vals, w, label="Run 2", color="#E59866",
+    bars2 = ax_bar.bar(x_positions + bar_width/2, r2_vals, bar_width, label="Run 2", color="#E59866",
                        edgecolor="white", zorder=3)
-    ax_bar.set_xticks(x)
+    ax_bar.set_xticks(x_positions)
     ax_bar.set_xticklabels(cats_w_overall)
     ax_bar.set_xlabel("Spatial Category", fontsize=9)
     ax_bar.set_ylabel("Accuracy (fraction correct)", fontsize=9)
@@ -543,9 +543,9 @@ def page_comparison(pdf):
     ax_delta = fig.add_subplot(gs[1, :])
     deltas = [category_accuracy[c] - category_accuracy_run1[c] for c in CATEGORIES] + [overall_acc - overall_accuracy_run1]
     colors_delta = ["#2ecc71" if d >= 0 else "#e74c3c" for d in deltas]
-    bars_d = ax_delta.bar(x, deltas, 0.55, color=colors_delta, edgecolor="white", zorder=3)
+    bars_d = ax_delta.bar(x_positions, deltas, 0.55, color=colors_delta, edgecolor="white", zorder=3)
     ax_delta.axhline(0, color=DARK, linewidth=1)
-    ax_delta.set_xticks(x)
+    ax_delta.set_xticks(x_positions)
     ax_delta.set_xticklabels(cats_w_overall)
     ax_delta.set_xlabel("Spatial Category", fontsize=9)
     ax_delta.set_ylabel("Accuracy change (Run 2 − Run 1)\npositive = improved in Run 2", fontsize=9)
@@ -560,10 +560,10 @@ def page_comparison(pdf):
     ax_overlap = fig.add_subplot(gs[2, 0])
     top_n_vals = list(range(5, 31, 5))
     overlaps = []
-    for n in top_n_vals:
-        r1_set = set(df_board_r1.head(n)["expert_label"])
-        r2_set = set(df_board.head(n)["expert_label"])
-        overlaps.append(len(r1_set & r2_set) / n)
+    for top_n in top_n_vals:
+        r1_set = set(df_board_r1.head(top_n)["expert_label"])
+        r2_set = set(df_board.head(top_n)["expert_label"])
+        overlaps.append(len(r1_set & r2_set) / top_n)
     ax_overlap.plot(top_n_vals, overlaps, marker="o", color=ACCENT, linewidth=2)
     ax_overlap.fill_between(top_n_vals, overlaps, alpha=0.2, color=ACCENT)
     ax_overlap.set_xlabel("Top-N experts considered", fontsize=8)
@@ -580,19 +580,19 @@ def page_comparison(pdf):
     ax_corr = fig.add_subplot(gs[2, 1])
     merged = df_rank.merge(df_rank_r1, on="expert_label", suffixes=("_r2", "_r1"))
     sample = merged.sample(min(500, len(merged)), random_state=42)
-    sc = ax_corr.scatter(
+    scatter_plot = ax_corr.scatter(
         sample["success_delta_r1"],
         sample["success_delta_r2"],
         c=sample["success_delta_r2"] - sample["success_delta_r1"],
         cmap="RdYlGn", s=5, alpha=0.5, linewidths=0,
     )
-    lim = max(abs(sample["success_delta_r1"].max()),
+    axis_limit = max(abs(sample["success_delta_r1"].max()),
               abs(sample["success_delta_r2"].max())) * 1.1
-    ax_corr.set_xlim(-lim, lim)
-    ax_corr.set_ylim(-lim, lim)
+    ax_corr.set_xlim(-axis_limit, axis_limit)
+    ax_corr.set_ylim(-axis_limit, axis_limit)
     ax_corr.axhline(0, color=DARK, linewidth=0.6)
     ax_corr.axvline(0, color=DARK, linewidth=0.6)
-    ax_corr.plot([-lim, lim], [-lim, lim], color="#AAAAAA",
+    ax_corr.plot([-axis_limit, axis_limit], [-axis_limit, axis_limit], color="#AAAAAA",
                  linewidth=1, linestyle="--", label="perfect agreement")
     ax_corr.set_xlabel("Expert success_delta - Run 1\n(correct − incorrect activation)",
                        fontsize=8)
@@ -600,11 +600,11 @@ def page_comparison(pdf):
                        fontsize=8)
     ax_corr.set_title("Expert Δ Correlation\nRun 1 vs Run 2 (500 random experts)")
     ax_corr.legend(fontsize=7)
-    plt.colorbar(sc, ax=ax_corr, shrink=0.7, label="Δ(R2)−Δ(R1)")
+    plt.colorbar(scatter_plot, ax=ax_corr, shrink=0.7, label="Δ(R2)−Δ(R1)")
 
     # Pearson r annotation
-    corr = np.corrcoef(merged["success_delta_r1"], merged["success_delta_r2"])[0, 1]
-    ax_corr.text(0.05, 0.92, f"Pearson r = {corr:.3f}", transform=ax_corr.transAxes,
+    pearson_r = np.corrcoef(merged["success_delta_r1"], merged["success_delta_r2"])[0, 1]
+    ax_corr.text(0.05, 0.92, f"Pearson r = {pearson_r:.3f}", transform=ax_corr.transAxes,
                  fontsize=8.5, color=DARK, fontweight="bold")
 
     pdf.savefig(fig, bbox_inches="tight")
@@ -660,10 +660,10 @@ def page_layer_depth(pdf):
 
 print(f"Generating {OUTPUT_PDF} …")
 with PdfPages(OUTPUT_PDF) as pdf:
-    meta = pdf.infodict()
-    meta["Title"]   = f"MoE Expert Routing Analysis Run 2 - {MODEL_NAME}"
-    meta["Subject"] = "LEGOLite 3D Spatial Reasoning Benchmark"
-    meta["Author"]  = "generate_report_run2.py"
+    pdf_metadata = pdf.infodict()
+    pdf_metadata["Title"]   = f"MoE Expert Routing Analysis Run 2 - {MODEL_NAME}"
+    pdf_metadata["Subject"] = "LEGOLite 3D Spatial Reasoning Benchmark"
+    pdf_metadata["Author"]  = "generate_report_run2.py"
 
     page_cover(pdf)
     page_accuracy(pdf)

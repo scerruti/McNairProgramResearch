@@ -70,11 +70,11 @@ def load_best_config():
     Layer ranking comes from step4_meta insertion order, which preserves
     z-score rank (worst first) from Step 2.
     """
-    with open(ABLATION_RESULTS_PATH) as f:
-        ablation = json.load(f)
+    with open(ABLATION_RESULTS_PATH) as file_handle:
+        ablation = json.load(file_handle)
 
-    with open(STEP4_META_PATH) as f:
-        step4 = json.load(f)
+    with open(STEP4_META_PATH) as file_handle:
+        step4 = json.load(file_handle)
 
     best_mode = ablation["best_mode_from_part_a"]
     worst_layers_ranked = [entry["layer_index"] for entry in step4["layers"]]
@@ -119,7 +119,7 @@ def load_model_and_processor():
         BitsAndBytesConfig,
     )
 
-    bnb_cfg = BitsAndBytesConfig(
+    quantization_config = BitsAndBytesConfig(
         load_in_4bit=True,
         bnb_4bit_quant_type="nf4",
         bnb_4bit_compute_dtype=torch.bfloat16,
@@ -140,18 +140,18 @@ def load_model_and_processor():
     print(f"Loading model [4-bit NF4, attn={attn_impl}, 24/{num_layers} decoder layers on GPU]...")
     model = Qwen3VLMoeForConditionalGeneration.from_pretrained(
         MODEL_ID,
-        quantization_config=bnb_cfg,
+        quantization_config=quantization_config,
         attn_implementation=attn_impl,
         device_map=device_map,
     )
     model.eval()
     processor = AutoProcessor.from_pretrained(MODEL_ID)
 
-    cfg = model.config.text_config
+    text_config = model.config.text_config
     meta = {
-        "num_layers": cfg.num_hidden_layers,
-        "num_experts": cfg.num_experts,
-        "top_k": cfg.num_experts_per_tok,
+        "num_layers": text_config.num_hidden_layers,
+        "num_experts": text_config.num_experts,
+        "top_k": text_config.num_experts_per_tok,
     }
     print(f"Model ready. Layers={meta['num_layers']}, Experts={meta['num_experts']}, Top-K={meta['top_k']}")
     return model, processor, meta
@@ -160,8 +160,8 @@ def load_model_and_processor():
 # --- Data loading ---
 
 def load_holdout_questions():
-    with open(HOLDOUT_PATH) as f:
-        return json.load(f)
+    with open(HOLDOUT_PATH) as file_handle:
+        return json.load(file_handle)
 
 
 def load_lego_dataframe(question_ids):
@@ -173,11 +173,11 @@ def load_lego_dataframe(question_ids):
 
 
 def load_image(row):
-    p = IMG_DIR / f"{row['index']}.png"
-    if not p.exists():
+    image_path = IMG_DIR / f"{row['index']}.png"
+    if not image_path.exists():
         return None
     try:
-        return Image.open(p).convert("RGB")
+        return Image.open(image_path).convert("RGB")
     except Exception:
         return None
 
@@ -185,15 +185,15 @@ def load_image(row):
 def build_messages(row):
     question = row["question"]
     question_type = str(row.get("question_type", "")).strip()
-    option_cols = [c for c in MCQ_CHOICES if c in row.index and not pd.isna(row.get(c))]
+    option_cols = [option_letter for option_letter in MCQ_CHOICES if option_letter in row.index and not pd.isna(row.get(option_letter))]
 
     prompt = f"Question: {question}\n"
     if option_cols:
         prompt += "Options:\n"
-        for c in option_cols:
-            val = row[c]
-            label = "[see image]" if isinstance(val, str) and "<image" in val else str(val)
-            prompt += f"{c}. {label}\n"
+        for option_letter in option_cols:
+            option_value = row[option_letter]
+            label = "[see image]" if isinstance(option_value, str) and "<image" in option_value else str(option_value)
+            prompt += f"{option_letter}. {label}\n"
 
     prompt += (
         "Please respond with only the letter sequence (e.g. 'BDAC').\n"
@@ -219,7 +219,7 @@ def make_moe_skip_hook():
         hidden_states = residual + mlp_output
     Zeroing mlp_output makes the MoE contribution a no-op for that layer.
     """
-    def hook(module, inp, output):
+    def hook(module, hook_input, output):
         if isinstance(output, tuple):
             return (torch.zeros_like(output[0]),) + output[1:]
         return torch.zeros_like(output)
@@ -228,12 +228,12 @@ def make_moe_skip_hook():
 
 def find_decoder_layers(model, num_layers):
     for path in ("model.layers", "model.model.layers", "model.language_model.layers"):
-        obj = model
+        candidate = model
         try:
             for attr in path.split("."):
-                obj = getattr(obj, attr)
-            if hasattr(obj, "__len__") and len(obj) == num_layers:
-                return obj
+                candidate = getattr(candidate, attr)
+            if hasattr(candidate, "__len__") and len(candidate) == num_layers:
+                return candidate
         except AttributeError:
             continue
     raise RuntimeError("Cannot locate decoder layer list in model.")
@@ -242,18 +242,17 @@ def find_decoder_layers(model, num_layers):
 @contextmanager
 def apply_moe_ablation(model, meta, layer_indices):
     """Registers moe_only hooks for the given layers and removes them on exit."""
-    from contextlib import contextmanager
     decoder_layers = find_decoder_layers(model, meta["num_layers"])
     hooks = []
-    for idx in layer_indices:
-        layer = decoder_layers[idx]
+    for layer_idx in layer_indices:
+        layer = decoder_layers[layer_idx]
         if hasattr(layer, "mlp"):
             hooks.append(layer.mlp.register_forward_hook(make_moe_skip_hook()))
     try:
         yield
     finally:
-        for h in hooks:
-            h.remove()
+        for hook in hooks:
+            hook.remove()
 
 
 # --- Inference ---
@@ -262,9 +261,9 @@ def detect_image_token_id(processor):
     if hasattr(processor, "image_token_id"):
         return processor.image_token_id
     for name in ("<|image_pad|>", "<image>", "<img>", "[IMG]", "<|vision_pad|>"):
-        tid = processor.tokenizer.convert_tokens_to_ids(name)
-        if tid != processor.tokenizer.unk_token_id:
-            return tid
+        token_id = processor.tokenizer.convert_tokens_to_ids(name)
+        if token_id != processor.tokenizer.unk_token_id:
+            return token_id
     raise RuntimeError("Could not detect image token ID.")
 
 
@@ -304,8 +303,8 @@ def run_inference(model, processor, df, meta, run_label):
             pred = max(scores, key=scores.get)
             correct = (pred == ground_truth[0]) if ground_truth else False
 
-        except Exception as exc:
-            pred = f"ERROR: {exc}"
+        except Exception as error:
+            pred = f"ERROR: {error}"
             correct = False
 
         results.append({
@@ -318,16 +317,16 @@ def run_inference(model, processor, df, meta, run_label):
         del outputs, inputs
         torch.cuda.empty_cache()
 
-    correct_count = sum(1 for r in results if r["correct"])
+    correct_count = sum(1 for record in results if record["correct"])
     accuracy = correct_count / len(results)
     print(f"{run_label}: {correct_count}/{len(results)} correct ({accuracy:.1%})")
 
     from collections import defaultdict
     cat_counts = defaultdict(lambda: {"correct": 0, "total": 0})
-    for r in results:
-        cat_counts[r["category"]]["total"] += 1
-        if r["correct"]:
-            cat_counts[r["category"]]["correct"] += 1
+    for record in results:
+        cat_counts[record["category"]]["total"] += 1
+        if record["correct"]:
+            cat_counts[record["category"]]["correct"] += 1
     for cat, counts in sorted(cat_counts.items()):
         print(f"  {cat}: {counts['correct']}/{counts['total']} ({counts['correct']/counts['total']:.1%})")
 
@@ -341,7 +340,7 @@ def main():
 
     best_mode, target_layers, bad_experts_by_layer = load_best_config()
     holdout_questions = load_holdout_questions()
-    question_ids = {str(q["question_id"]) for q in holdout_questions}
+    question_ids = {str(question["question_id"]) for question in holdout_questions}
 
     df = load_lego_dataframe(question_ids)
     if len(df) != len(holdout_questions):
@@ -359,7 +358,7 @@ def main():
             f"holdout_{best_mode}_{len(target_layers)}layers"
         )
 
-    output = {
+    holdout_report = {
         "holdout_baseline_accuracy": baseline_acc,
         "holdout_ablation_accuracy": ablation_acc,
         "ablation_mode": best_mode,
@@ -375,8 +374,8 @@ def main():
         ],
     }
 
-    with open(OUTPUT_PATH, "w") as f:
-        json.dump(output, f, indent=2)
+    with open(OUTPUT_PATH, "w") as file_handle:
+        json.dump(holdout_report, file_handle, indent=2)
     print(f"\nSaved: {OUTPUT_PATH}")
 
     delta = ablation_acc - baseline_acc

@@ -84,7 +84,7 @@ def load_model_and_processor():
         BitsAndBytesConfig,
     )
 
-    bnb_cfg = BitsAndBytesConfig(
+    quantization_config = BitsAndBytesConfig(
         load_in_4bit=True,
         bnb_4bit_quant_type="nf4",
         bnb_4bit_compute_dtype=torch.bfloat16,
@@ -101,7 +101,7 @@ def load_model_and_processor():
     print(f"Loading model [4-bit NF4, attn={attn_impl}]...")
     model = Qwen3VLMoeForConditionalGeneration.from_pretrained(
         MODEL_ID,
-        quantization_config=bnb_cfg,
+        quantization_config=quantization_config,
         attn_implementation=attn_impl,
         device_map="auto",
         max_memory={0: "23GiB", "cpu": "6GiB"},
@@ -109,11 +109,11 @@ def load_model_and_processor():
     model.eval()
     processor = AutoProcessor.from_pretrained(MODEL_ID)
 
-    cfg = model.config.text_config
+    text_config = model.config.text_config
     meta = {
-        "num_layers": cfg.num_hidden_layers,
-        "num_experts": cfg.num_experts,
-        "top_k": cfg.num_experts_per_tok,
+        "num_layers": text_config.num_hidden_layers,
+        "num_experts": text_config.num_experts,
+        "top_k": text_config.num_experts_per_tok,
     }
     print(f"Model ready. Layers={meta['num_layers']}, Experts={meta['num_experts']}, Top-K={meta['top_k']}")
     return model, processor, meta
@@ -122,17 +122,17 @@ def load_model_and_processor():
 # --- Data loading ---
 
 def load_test_questions():
-    with open(TEST_QUESTIONS_PATH) as f:
-        return json.load(f)
+    with open(TEST_QUESTIONS_PATH) as file_handle:
+        return json.load(file_handle)
 
 
 def load_step4_meta():
-    with open(STEP4_META_PATH) as f:
-        return json.load(f)
+    with open(STEP4_META_PATH) as file_handle:
+        return json.load(file_handle)
 
 
 def build_question_id_set(test_questions):
-    return {q["question_id"] for q in test_questions}
+    return {question["question_id"] for question in test_questions}
 
 
 def load_lego_dataframe(test_question_ids):
@@ -144,11 +144,11 @@ def load_lego_dataframe(test_question_ids):
 
 
 def load_image(row):
-    p = IMG_DIR / f"{row['index']}.png"
-    if not p.exists():
+    image_path = IMG_DIR / f"{row['index']}.png"
+    if not image_path.exists():
         return None
     try:
-        return Image.open(p).convert("RGB")
+        return Image.open(image_path).convert("RGB")
     except Exception:
         return None
 
@@ -156,15 +156,15 @@ def load_image(row):
 def build_messages(row):
     question = row["question"]
     question_type = str(row.get("question_type", "")).strip()
-    option_cols = [c for c in MCQ_CHOICES if c in row.index and not pd.isna(row.get(c))]
+    option_cols = [option_letter for option_letter in MCQ_CHOICES if option_letter in row.index and not pd.isna(row.get(option_letter))]
 
     prompt = f"Question: {question}\n"
     if option_cols:
         prompt += "Options:\n"
-        for c in option_cols:
-            val = row[c]
-            label = "[see image]" if isinstance(val, str) and "<image" in val else str(val)
-            prompt += f"{c}. {label}\n"
+        for option_letter in option_cols:
+            option_value = row[option_letter]
+            label = "[see image]" if isinstance(option_value, str) and "<image" in option_value else str(option_value)
+            prompt += f"{option_letter}. {label}\n"
 
     prompt += (
         "Please respond with only the letter sequence (e.g. 'BDAC').\n"
@@ -192,10 +192,10 @@ def make_full_block_hook():
     states before the layer and output[0] is after. Swapping output[0] for
     input[0] achieves the skip.
     """
-    def hook(module, inp, output):
+    def hook(module, hook_input, output):
         if isinstance(output, tuple):
-            return (inp[0],) + output[1:]
-        return inp[0]
+            return (hook_input[0],) + output[1:]
+        return hook_input[0]
     return hook
 
 
@@ -209,7 +209,7 @@ def make_moe_skip_hook():
     contribution, isolating whether MoE specifically is responsible for errors
     versus the attention sublayer.
     """
-    def hook(module, inp, output):
+    def hook(module, hook_input, output):
         if isinstance(output, tuple):
             return (torch.zeros_like(output[0]),) + output[1:]
         return torch.zeros_like(output)
@@ -241,7 +241,7 @@ def make_expert_gate_hook(bad_expert_indices):
         row_sums = torch.clamp(row_sums, min=1e-8)
         return weights_2d / row_sums
 
-    def hook(module, inp, output):
+    def hook(module, hook_input, output):
         if isinstance(output, torch.Tensor) and output.dim() == 2:
             return zero_and_renorm(output)
         elif isinstance(output, (tuple, list)) and len(output) >= 2:
@@ -256,12 +256,12 @@ def make_expert_gate_hook(bad_expert_indices):
 
 def find_decoder_layers(model, num_layers):
     for path in ("model.layers", "model.model.layers"):
-        obj = model
+        candidate = model
         try:
             for attr in path.split("."):
-                obj = getattr(obj, attr)
-            if hasattr(obj, "__len__") and len(obj) == num_layers:
-                return obj
+                candidate = getattr(candidate, attr)
+            if hasattr(candidate, "__len__") and len(candidate) == num_layers:
+                return candidate
         except AttributeError:
             continue
     raise RuntimeError("Cannot locate decoder layer list in model.")
@@ -288,27 +288,27 @@ def apply_ablation(model, meta, ablation_mode, layer_indices, bad_experts_by_lay
         layer = decoder_layers[layer_idx]
 
         if ablation_mode == "full_block":
-            h = layer.register_forward_hook(make_full_block_hook())
-            hooks.append(h)
+            hook = layer.register_forward_hook(make_full_block_hook())
+            hooks.append(hook)
 
         elif ablation_mode == "moe_only":
             if hasattr(layer, "mlp"):
-                h = layer.mlp.register_forward_hook(make_moe_skip_hook())
-                hooks.append(h)
+                hook = layer.mlp.register_forward_hook(make_moe_skip_hook())
+                hooks.append(hook)
 
         elif ablation_mode == "expert":
             bad_experts = (bad_experts_by_layer or {}).get(layer_idx, [])
             if bad_experts and hasattr(layer, "mlp") and hasattr(layer.mlp, "gate"):
-                h = layer.mlp.gate.register_forward_hook(
+                hook = layer.mlp.gate.register_forward_hook(
                     make_expert_gate_hook(bad_experts)
                 )
-                hooks.append(h)
+                hooks.append(hook)
 
     try:
         yield
     finally:
-        for h in hooks:
-            h.remove()
+        for hook in hooks:
+            hook.remove()
 
 
 # --- Inference ---
@@ -317,9 +317,9 @@ def detect_image_token_id(processor):
     if hasattr(processor, "image_token_id"):
         return processor.image_token_id
     for name in ("<|image_pad|>", "<image>", "<img>", "[IMG]", "<|vision_pad|>"):
-        tid = processor.tokenizer.convert_tokens_to_ids(name)
-        if tid != processor.tokenizer.unk_token_id:
-            return tid
+        token_id = processor.tokenizer.convert_tokens_to_ids(name)
+        if token_id != processor.tokenizer.unk_token_id:
+            return token_id
     raise RuntimeError("Could not detect image token ID.")
 
 
@@ -367,8 +367,8 @@ def run_inference(model, processor, df, meta, run_label):
             pred = max(scores, key=scores.get)
             correct = (pred == ground_truth[0]) if ground_truth else False
 
-        except Exception as exc:
-            pred = f"ERROR: {exc}"
+        except Exception as error:
+            pred = f"ERROR: {error}"
             correct = False
 
         results.append({
@@ -381,13 +381,13 @@ def run_inference(model, processor, df, meta, run_label):
         del outputs, inputs
         torch.cuda.empty_cache()
 
-    correct_count = sum(1 for r in results if r["correct"])
+    correct_count = sum(1 for record in results if record["correct"])
     accuracy = correct_count / len(results)
     print(f"{run_label}: {correct_count}/{len(results)} correct ({accuracy:.1%})")
 
     for cat in LITE_CATEGORIES:
-        cat_results = [r for r in results if r["category"] == cat]
-        cat_acc = sum(1 for r in cat_results if r["correct"]) / len(cat_results)
+        cat_results = [record for record in results if record["category"] == cat]
+        cat_acc = sum(1 for record in cat_results if record["correct"]) / len(cat_results)
         print(f"  {cat}: {cat_acc:.1%}")
 
     return results, accuracy
@@ -523,7 +523,7 @@ def main():
     part_a = run_part_a(model, processor, df, meta, bad_experts_by_layer, worst_layer)
     all_run_results.extend(part_a)
 
-    best_mode = max(part_a, key=lambda r: r["accuracy"])["ablation_mode"]
+    best_mode = max(part_a, key=lambda run_result: run_result["accuracy"])["ablation_mode"]
     print(f"\nBest ablation mode from Part A: {best_mode}")
     print(f"Baseline accuracy: {baseline_accuracy:.1%}")
 
@@ -533,7 +533,7 @@ def main():
     part_c = run_part_c(model, processor, df, meta, meta["num_layers"])
     all_run_results.extend(part_c)
 
-    output = {
+    ablation_report = {
         "baseline_accuracy": baseline_accuracy,
         "worst_layer_for_part_a": worst_layer,
         "best_mode_from_part_a": best_mode,
@@ -542,8 +542,8 @@ def main():
         "runs": all_run_results,
     }
 
-    with open(RESULTS_PATH, "w") as f:
-        json.dump(output, f, indent=2)
+    with open(RESULTS_PATH, "w") as file_handle:
+        json.dump(ablation_report, file_handle, indent=2)
     print(f"\nAll results saved to {RESULTS_PATH}")
 
     print("\n=== SUMMARY ===")

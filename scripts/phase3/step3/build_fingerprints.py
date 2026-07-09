@@ -34,44 +34,44 @@ ROUTER_TOP_K = 8
 
 
 def load_binarized_data():
-    with open(BINARIZED_PATH) as f:
-        return json.load(f)
+    with open(BINARIZED_PATH) as file_handle:
+        return json.load(file_handle)
 
 
 def load_step1_meta():
-    with open(STEP1_META_PATH) as f:
-        return json.load(f)
+    with open(STEP1_META_PATH) as file_handle:
+        return json.load(file_handle)
 
 
 def load_top_layers():
-    with open(STEP2_META_PATH) as f:
-        meta = json.load(f)
-    return [entry["layer_index"] for entry in meta["top_5_worst_layers"]]
+    with open(STEP2_META_PATH) as file_handle:
+        step2_meta = json.load(file_handle)
+    return [entry["layer_index"] for entry in step2_meta["top_5_worst_layers"]]
 
 
-def build_fingerprint_matrix(binarized_questions, layer_index, n_questions):
+def build_fingerprint_matrix(binarized_questions, layer_index, num_questions):
     """
     Transpose the routing data from question-major to expert-major layout.
 
     The binarized data is stored per question (each question has a dict of
     layer -> 128-bit vector). Step 4 needs the inverse: per expert, which
     questions activated it. Transposing here so clustering can treat each
-    expert as a single n_questions-dim point without re-reading all questions
+    expert as a single num_questions-dim point without re-reading all questions
     per expert.
     """
     layer_key = str(layer_index)
-    matrix = [[0] * n_questions for _ in range(EXPERTS_PER_LAYER)]
+    matrix = [[0] * num_questions for _ in range(EXPERTS_PER_LAYER)]
 
-    for q_idx, question in enumerate(binarized_questions):
+    for question_idx, question in enumerate(binarized_questions):
         binary_vector = question["binarized_routing"][layer_key]
         for expert_idx, is_selected in enumerate(binary_vector):
             if is_selected == 1:
-                matrix[expert_idx][q_idx] = 1
+                matrix[expert_idx][question_idx] = 1
 
     return matrix
 
 
-def check_column_sums(matrix, n_questions):
+def check_column_sums(matrix, num_questions):
     """
     Verify that exactly ROUTER_TOP_K experts are selected per question.
 
@@ -82,10 +82,10 @@ def check_column_sums(matrix, n_questions):
     Returns a list of (question_index, actual_sum) for any failing columns.
     """
     errors = []
-    for q_idx in range(n_questions):
-        col_sum = sum(matrix[expert_idx][q_idx] for expert_idx in range(EXPERTS_PER_LAYER))
+    for question_idx in range(num_questions):
+        col_sum = sum(matrix[expert_idx][question_idx] for expert_idx in range(EXPERTS_PER_LAYER))
         if col_sum != ROUTER_TOP_K:
-            errors.append((q_idx, col_sum))
+            errors.append((question_idx, col_sum))
     return errors
 
 
@@ -102,23 +102,23 @@ def compute_activation_stats(matrix):
         "avg_activations_per_expert": round(sum(row_sums) / len(row_sums), 1),
         "min_activations": min(row_sums),
         "max_activations": max(row_sums),
-        "zero_experts": sum(1 for s in row_sums if s == 0),
+        "zero_experts": sum(1 for count in row_sums if count == 0),
     }
 
 
-def process_layer(layer_index, binarized_questions, n_questions):
+def process_layer(layer_index, binarized_questions, num_questions):
     print(f"\n--- Layer {layer_index} ---")
 
-    matrix = build_fingerprint_matrix(binarized_questions, layer_index, n_questions)
+    matrix = build_fingerprint_matrix(binarized_questions, layer_index, num_questions)
 
-    column_errors = check_column_sums(matrix, n_questions)
+    column_errors = check_column_sums(matrix, num_questions)
     if column_errors:
         print(f"  SANITY CHECK FAILED: {len(column_errors)} columns have wrong sums")
-        for q_idx, col_sum in column_errors[:5]:
-            print(f"    Column {q_idx}: sum = {col_sum} (expected {ROUTER_TOP_K})")
+        for question_idx, col_sum in column_errors[:5]:
+            print(f"    Column {question_idx}: sum = {col_sum} (expected {ROUTER_TOP_K})")
         return None
 
-    print(f"  Sanity check passed: all {n_questions} columns sum to {ROUTER_TOP_K}")
+    print(f"  Sanity check passed: all {num_questions} columns sum to {ROUTER_TOP_K}")
 
     stats = compute_activation_stats(matrix)
     print(
@@ -128,13 +128,13 @@ def process_layer(layer_index, binarized_questions, n_questions):
     )
 
     out_path = STEP3_OUTPUT_DIR / f"fingerprint_layer_{layer_index}.json"
-    with open(out_path, "w") as f:
-        json.dump(matrix, f)
+    with open(out_path, "w") as file_handle:
+        json.dump(matrix, file_handle)
     print(f"  Saved: {out_path}")
 
     return {
         "layer_index": layer_index,
-        "matrix_shape": [EXPERTS_PER_LAYER, n_questions],
+        "matrix_shape": [EXPERTS_PER_LAYER, num_questions],
         "sanity_check_passed": True,
         **stats,
     }
@@ -146,13 +146,13 @@ def main():
     print("=" * 60)
 
     step1_meta = load_step1_meta()
-    n_questions = step1_meta["test_question_count"]
+    num_questions = step1_meta["test_question_count"]
 
     binarized_questions = load_binarized_data()
     print(f"Loaded {len(binarized_questions)} binarized questions.")
 
-    if len(binarized_questions) != n_questions:
-        print(f"ERROR: expected {n_questions} questions, got {len(binarized_questions)}")
+    if len(binarized_questions) != num_questions:
+        print(f"ERROR: expected {num_questions} questions, got {len(binarized_questions)}")
         return
 
     top_layers = load_top_layers()
@@ -162,18 +162,18 @@ def main():
 
     layer_results = []
     for layer_index in top_layers:
-        result = process_layer(layer_index, binarized_questions, n_questions)
+        result = process_layer(layer_index, binarized_questions, num_questions)
         if result:
             layer_results.append(result)
 
-    meta = {
+    step3_meta = {
         "layers_processed": top_layers,
-        "matrix_shape": [EXPERTS_PER_LAYER, n_questions],
+        "matrix_shape": [EXPERTS_PER_LAYER, num_questions],
         "layer_results": layer_results,
     }
     meta_path = STEP3_OUTPUT_DIR / "step3_meta.json"
-    with open(meta_path, "w") as f:
-        json.dump(meta, f, indent=2)
+    with open(meta_path, "w") as file_handle:
+        json.dump(step3_meta, file_handle, indent=2)
     print(f"\nSaved: {meta_path}")
     print("\nStep 3 complete.")
 

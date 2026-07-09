@@ -28,7 +28,6 @@ from transformers import Qwen3VLMoeForConditionalGeneration, AutoProcessor
 
 MODEL_ID = "Qwen/Qwen3-VL-30B-A3B-Instruct"
 LEGO_TSV_URL = "https://opencompass.openxlab.space/utils/VLMEval/LEGO.tsv"
-# LITE_CATEGORIES = ["height", "position", "rotation", "ordering"]
 DATA_DIR = "/content/lego_data"
 IMG_DIR = "/content/lego_images"
 
@@ -50,10 +49,10 @@ model = Qwen3VLMoeForConditionalGeneration.from_pretrained(
 model.eval()
 processor = AutoProcessor.from_pretrained(MODEL_ID)
 
-text_cfg = model.config.text_config
-NUM_LAYERS = text_cfg.num_hidden_layers
-NUM_EXPERTS = text_cfg.num_experts
-TOP_K = text_cfg.num_experts_per_tok
+text_config = model.config.text_config
+NUM_LAYERS = text_config.num_hidden_layers
+NUM_EXPERTS = text_config.num_experts
+TOP_K = text_config.num_experts_per_tok
 print(f"Loaded. Layers={NUM_LAYERS}, Experts={NUM_EXPERTS}, Top-K={TOP_K}")
 
 # ── Hook infrastructure ──────────────────────────────────────────────────────
@@ -74,12 +73,12 @@ def make_router_hook(layer_idx):
 
 def find_decoder_layers():
     for attr_path in ["model.layers", "model.model.layers"]:
-        obj = model
+        candidate = model
         try:
             for attr in attr_path.split("."):
-                obj = getattr(obj, attr)
-            if hasattr(obj, '__len__') and len(obj) == NUM_LAYERS:
-                return obj
+                candidate = getattr(candidate, attr)
+            if hasattr(candidate, '__len__') and len(candidate) == NUM_LAYERS:
+                return candidate
         except AttributeError:
             continue
     for name, module in model.named_modules():
@@ -100,8 +99,8 @@ def register_hooks():
     remove_hooks()
     for layer_idx, layer in enumerate(decoder_layers):
         if hasattr(layer.mlp, 'gate'):
-            h = layer.mlp.gate.register_forward_hook(make_router_hook(layer_idx))
-            hooks.append(h)
+            hook = layer.mlp.gate.register_forward_hook(make_router_hook(layer_idx))
+            hooks.append(hook)
     print(f"Registered {len(hooks)} router hooks.")
 
 
@@ -125,7 +124,6 @@ if not os.path.exists(tsv_path):
 
 df_full = pd.read_csv(tsv_path, sep="\t")
 LITE_CATEGORIES = sorted(df_full["category"].unique())
-# df_lite = df_full[df_full["category"].isin(LITE_CATEGORIES)].reset_index(drop=True)
 df_lite = df_full.reset_index(drop=True)
 print(f"\nLEGO: {len(df_lite)} questions")
 
@@ -173,17 +171,17 @@ def build_messages(row):
     idx = str(row["index"])
     question = row["question"]
     question_type = row["question_type"]
-    option_cols = [c for c in string.ascii_uppercase if c in row.index and pd.notna(row[c])]
+    option_cols = [letter for letter in string.ascii_uppercase if letter in row.index and pd.notna(row[letter])]
 
     prompt = f"Question: {question}\n"
     if option_cols:
         prompt += "Options:\n"
-        for c in option_cols:
-            val = row[c]
-            if isinstance(val, str) and "<image" in val:
-                prompt += f"{c}. [see image]\n"
+        for option_letter in option_cols:
+            option_value = row[option_letter]
+            if isinstance(option_value, str) and "<image" in option_value:
+                prompt += f"{option_letter}. [see image]\n"
             else:
-                prompt += f"{c}. {val}\n"
+                prompt += f"{option_letter}. {option_value}\n"
 
     if question_type == "sort":
         prompt += "Please respond with only the sequence of letters (e.g., 'BDAC') that correctly orders the steps.\n"
@@ -191,8 +189,8 @@ def build_messages(row):
         prompt += "Please respond with only the letter of the correct answer.\n"
 
     content = []
-    for p in image_path_map.get(idx, []):
-        content.append({"type": "image", "image": f"file://{p}"})
+    for image_path in image_path_map.get(idx, []):
+        content.append({"type": "image", "image": f"file://{image_path}"})
     content.append({"type": "text", "text": prompt})
     return [{"role": "user", "content": content}]
 
@@ -228,12 +226,12 @@ for row_idx in tqdm(range(len(df_lite)), desc="LEGO"):
         with torch.no_grad():
             output_ids = model.generate(**inputs, max_new_tokens=64)
 
-        generated_ids = [out[len(inp):] for inp, out in zip(inputs["input_ids"], output_ids)]
+        generated_ids = [full_output[len(full_input):] for full_input, full_output in zip(inputs["input_ids"], output_ids)]
         prediction = processor.batch_decode(
             generated_ids, skip_special_tokens=True, clean_up_tokenization_spaces=False
         )[0].strip()
-    except Exception as e:
-        prediction = f"ERROR: {e}"
+    except Exception as error:
+        prediction = f"ERROR: {error}"
 
     question_expert_freq = Counter()
     per_layer = {}
@@ -251,7 +249,7 @@ for row_idx in tqdm(range(len(df_lite)), desc="LEGO"):
         "prediction": prediction,
         "ground_truth": answer_gt,
         "correct": is_correct,
-        "expert_frequency": {str(k): v for k, v in question_expert_freq.items()},
+        "expert_frequency": {str(expert_id): count for expert_id, count in question_expert_freq.items()},
         "per_layer_experts": per_layer,
     }
     results.append({
@@ -259,8 +257,8 @@ for row_idx in tqdm(range(len(df_lite)), desc="LEGO"):
         "prediction": prediction, "ground_truth": answer_gt, "correct": is_correct,
     })
 
-    for k in [k for k in expert_log if k[0] == q_id]:
-        del expert_log[k]
+    for log_key in [log_key for log_key in expert_log if log_key[0] == q_id]:
+        del expert_log[log_key]
     torch.cuda.empty_cache()
 
 remove_hooks()
@@ -274,9 +272,9 @@ for cat in LITE_CATEGORIES:
         print(f"  {cat:12s}: {cat_df['correct'].mean():.1%} ({int(cat_df['correct'].sum())}/{len(cat_df)})")
 
 category_expert_freq = defaultdict(Counter)
-for q_id, data in all_expert_data.items():
-    freq = {int(k): v for k, v in data["expert_frequency"].items()}
-    category_expert_freq[data["category"]].update(freq)
+for q_id, question_data in all_expert_data.items():
+    freq = {int(expert_id): count for expert_id, count in question_data["expert_frequency"].items()}
+    category_expert_freq[question_data["category"]].update(freq)
 
 category_summary = {}
 for cat in LITE_CATEGORIES:
@@ -285,12 +283,12 @@ for cat in LITE_CATEGORIES:
         continue
     top_experts = freq.most_common(15)
     category_summary[cat] = {
-        "top_15_experts": [{"expert_id": eid, "activation_count": cnt} for eid, cnt in top_experts],
+        "top_15_experts": [{"expert_id": expert_id, "activation_count": count} for expert_id, count in top_experts],
         "total_activations": sum(freq.values()),
         "unique_experts_used": len(freq),
     }
 
-output = {
+analysis_report = {
     "model": MODEL_ID,
     "benchmark": "LEGO",
     "categories": LITE_CATEGORIES,
@@ -305,6 +303,6 @@ output = {
 }
 
 output_path = "/content/lego_moe_expert_analysis.json"
-with open(output_path, "w") as f:
-    json.dump(output, f, indent=2)
+with open(output_path, "w") as output_file:
+    json.dump(analysis_report, output_file, indent=2)
 print(f"\nExported to {output_path} ({os.path.getsize(output_path) / 1024 / 1024:.1f} MB)")

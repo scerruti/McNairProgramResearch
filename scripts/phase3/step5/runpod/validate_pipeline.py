@@ -24,12 +24,12 @@ errors = []
 warnings = []
 
 
-def error(msg):
-    errors.append(msg)
+def error(message):
+    errors.append(message)
 
 
-def warn(msg):
-    warnings.append(msg)
+def warn(message):
+    warnings.append(message)
 
 
 REQUIRED_PATHS = [
@@ -45,40 +45,40 @@ REQUIRED_PATHS = [
 
 
 def check_structure():
-    for rel in REQUIRED_PATHS:
-        if not (ROOT / rel).exists():
-            error(f"missing required path: {rel}")
+    for relative_path in REQUIRED_PATHS:
+        if not (ROOT / relative_path).exists():
+            error(f"missing required path: {relative_path}")
 
-    imgs = ROOT / "data/lego/images"
-    if imgs.is_dir() and not any(imgs.glob("*.png")):
+    images_dir = ROOT / "data/lego/images"
+    if images_dir.is_dir() and not any(images_dir.glob("*.png")):
         warn("data/lego/images/ exists but contains no .png files")
 
 
 def check_python_syntax():
-    for py in ROOT.rglob("*.py"):
-        if ".ipynb_checkpoints" in py.parts:
+    for py_file in ROOT.rglob("*.py"):
+        if ".ipynb_checkpoints" in py_file.parts:
             continue
         try:
-            py_compile.compile(str(py), doraise=True)
-        except py_compile.PyCompileError as e:
-            error(f"syntax error in {py.relative_to(ROOT)}: {e.msg}")
+            py_compile.compile(str(py_file), doraise=True)
+        except py_compile.PyCompileError as compile_error:
+            error(f"syntax error in {py_file.relative_to(ROOT)}: {compile_error.msg}")
 
 
 def check_json():
     test_path = ROOT / "data/phase3/test_200.json"
     if test_path.exists():
         try:
-            data = json.loads(test_path.read_text())
-            if not isinstance(data, list) or not all("question_id" in q for q in data):
+            test_questions = json.loads(test_path.read_text())
+            if not isinstance(test_questions, list) or not all("question_id" in question for question in test_questions):
                 error("test_200.json: expected a list of objects each with 'question_id'")
-        except json.JSONDecodeError as e:
-            error(f"test_200.json: invalid JSON ({e})")
+        except json.JSONDecodeError as parse_error:
+            error(f"test_200.json: invalid JSON ({parse_error})")
 
     meta_path = ROOT / "data/phase3/step4_meta.json"
     if meta_path.exists():
         try:
-            data = json.loads(meta_path.read_text())
-            layers = data.get("layers")
+            step4_meta = json.loads(meta_path.read_text())
+            layers = step4_meta.get("layers")
             if not isinstance(layers, list):
                 error("step4_meta.json: expected a 'layers' list")
             else:
@@ -87,8 +87,8 @@ def check_json():
                     for key in required_keys:
                         if key not in layer:
                             error(f"step4_meta.json: layer entry missing '{key}'")
-        except json.JSONDecodeError as e:
-            error(f"step4_meta.json: invalid JSON ({e})")
+        except json.JSONDecodeError as parse_error:
+            error(f"step4_meta.json: invalid JSON ({parse_error})")
 
 
 MODEL_ID_RE = re.compile(r'MODEL_ID\s*=\s*"([^"]+)"')
@@ -106,49 +106,49 @@ OBSERVED_GIB_PER_GPU_LAYER = 1.3
 
 
 def check_model_consistency():
-    refs = {}
-    p = ROOT / "src/ablation_run.py"
-    if p.exists():
-        m = MODEL_ID_RE.search(p.read_text())
-        if m:
-            refs["src/ablation_run.py"] = m.group(1)
+    model_id_refs = {}
+    ablation_script_path = ROOT / "src/ablation_run.py"
+    if ablation_script_path.exists():
+        match = MODEL_ID_RE.search(ablation_script_path.read_text())
+        if match:
+            model_id_refs["src/ablation_run.py"] = match.group(1)
 
-    sh = ROOT / "runpod_run.sh"
-    if sh.exists():
-        text = sh.read_text()
-        m = REPO_ID_RE.search(text)
-        if m:
-            refs["runpod_run.sh:repo_id"] = m.group(1)
-        m = LOCAL_DIR_RE.search(text)
-        if m:
-            refs["runpod_run.sh:local_dir"] = m.group(1)
+    runpod_script_path = ROOT / "runpod_run.sh"
+    if runpod_script_path.exists():
+        text = runpod_script_path.read_text()
+        match = REPO_ID_RE.search(text)
+        if match:
+            model_id_refs["runpod_run.sh:repo_id"] = match.group(1)
+        match = LOCAL_DIR_RE.search(text)
+        if match:
+            model_id_refs["runpod_run.sh:local_dir"] = match.group(1)
 
-    if not refs:
+    if not model_id_refs:
         warn("no MODEL_ID/repo_id references found to cross-check")
         return
 
     names = {}
-    for source, value in refs.items():
-        m = MODEL_NAME_RE.search(value)
-        names[source] = m.group(0) if m else value
+    for source, value in model_id_refs.items():
+        match = MODEL_NAME_RE.search(value)
+        names[source] = match.group(0) if match else value
 
     if len(set(names.values())) > 1:
         error(f"VL model name mismatch across files: {names}")
 
 
 def check_gpu_vram():
-    p = ROOT / "src/ablation_run.py"
-    if not p.exists():
+    ablation_script_path = ROOT / "src/ablation_run.py"
+    if not ablation_script_path.exists():
         return
-    m = GPU_LAYERS_RE.search(p.read_text())
-    if not m:
+    match = GPU_LAYERS_RE.search(ablation_script_path.read_text())
+    if not match:
         warn("could not find gpu_layers=N in src/ablation_run.py to check")
         return
-    gpu_layers = int(m.group(1))
+    gpu_layers = int(match.group(1))
     estimated_gib = gpu_layers * OBSERVED_GIB_PER_GPU_LAYER
 
     try:
-        out = subprocess.run(
+        nvidia_smi_result = subprocess.run(
             ["nvidia-smi", "--query-gpu=name,memory.total", "--format=csv,noheader,nounits"],
             capture_output=True, text=True, timeout=10,
         )
@@ -156,11 +156,11 @@ def check_gpu_vram():
         warn("nvidia-smi not found; skipping live GPU/VRAM check")
         return
 
-    if out.returncode != 0 or not out.stdout.strip():
+    if nvidia_smi_result.returncode != 0 or not nvidia_smi_result.stdout.strip():
         warn("nvidia-smi returned no GPU; skipping live GPU/VRAM check")
         return
 
-    name, mem_mib = out.stdout.strip().splitlines()[0].split(",")
+    name, mem_mib = nvidia_smi_result.stdout.strip().splitlines()[0].split(",")
     actual_gib = int(mem_mib.strip()) / 1024
     name = name.strip()
 
@@ -187,13 +187,13 @@ def main():
 
     if warnings:
         print("WARNINGS:")
-        for w in warnings:
-            print(f"  - {w}")
+        for warning in warnings:
+            print(f"  - {warning}")
 
     if errors:
         print("ERRORS:")
-        for e in errors:
-            print(f"  - {e}")
+        for error_message in errors:
+            print(f"  - {error_message}")
         print(f"\n{len(errors)} error(s), {len(warnings)} warning(s)")
         sys.exit(1)
 

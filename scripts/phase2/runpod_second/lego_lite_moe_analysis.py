@@ -91,7 +91,7 @@ def load_model_and_processor():
         BitsAndBytesConfig,
     )
 
-    bnb_cfg = BitsAndBytesConfig(
+    quantization_config = BitsAndBytesConfig(
         load_in_4bit=True,
         bnb_4bit_quant_type="nf4",
         bnb_4bit_compute_dtype=torch.bfloat16,
@@ -107,7 +107,7 @@ def load_model_and_processor():
     print(f"Loading {MODEL_ID}  [4-bit NF4, attn={attn_impl}] …")
     model = Qwen3VLMoeForConditionalGeneration.from_pretrained(
         MODEL_ID,
-        quantization_config=bnb_cfg,
+        quantization_config=quantization_config,
         attn_implementation=attn_impl,
         device_map="auto",
     )
@@ -115,11 +115,11 @@ def load_model_and_processor():
 
     processor = AutoProcessor.from_pretrained(MODEL_ID)
 
-    cfg = model.config.text_config
+    text_config = model.config.text_config
     meta = dict(
-        num_layers  = cfg.num_hidden_layers,   # 48
-        num_experts = cfg.num_experts,          # 128
-        top_k       = cfg.num_experts_per_tok,  # 8
+        num_layers  = text_config.num_hidden_layers,   # 48
+        num_experts = text_config.num_experts,          # 128
+        top_k       = text_config.num_experts_per_tok,  # 8
     )
     print(f"Ready. Layers={meta['num_layers']}, "
           f"Experts={meta['num_experts']}, Top-K={meta['top_k']}")
@@ -139,11 +139,11 @@ def load_legolit_dataset():
 
 def _load_image(row) -> Image.Image | None:
     """Load image as PIL object; returns None if missing."""
-    p = IMG_DIR / f"{row['index']}.png"
-    if not p.exists():
+    image_path = IMG_DIR / f"{row['index']}.png"
+    if not image_path.exists():
         return None
     try:
-        return Image.open(p).convert("RGB")
+        return Image.open(image_path).convert("RGB")
     except Exception:
         return None
 
@@ -156,16 +156,16 @@ def build_messages(row) -> tuple[list[dict], Image.Image | None]:
     """
     question      = row["question"]
     question_type = str(row.get("question_type", "")).strip()
-    option_cols   = [c for c in MCQ_CHOICES
-                if c in row.index and not pd.isna(row.get(c))]
+    option_cols   = [option_letter for option_letter in MCQ_CHOICES
+                if option_letter in row.index and not pd.isna(row.get(option_letter))]
 
     prompt = f"Question: {question}\n"
     if option_cols:
         prompt += "Options:\n"
-        for c in option_cols:
-            val = row[c]
-            label = "[see image]" if isinstance(val, str) and "<image" in val else str(val)
-            prompt += f"{c}. {label}\n"
+        for option_letter in option_cols:
+            option_value = row[option_letter]
+            label = "[see image]" if isinstance(option_value, str) and "<image" in option_value else str(option_value)
+            prompt += f"{option_letter}. {label}\n"
 
     prompt += ("Please respond with only the letter sequence (e.g. 'BDAC').\n"
                if question_type == "sort"
@@ -203,7 +203,7 @@ def _make_router_hook(layer_idx: int):
     interpretable activation values (each selected expert's true contribution weight).
     Falls back to softmax of raw_logits if the sparse path isn't available.
     """
-    def _hook(module, inp, output):
+    def _hook(module, hook_input, output):
         global _routing_buf
 
         # transformers ≥4.57: gate returns a single Tensor [tokens, num_experts]
@@ -220,19 +220,19 @@ def _make_router_hook(layer_idx: int):
                                          device=routing_weights.device, dtype=torch.float32)
                 weight_mat.scatter_(1, selected_expert_indices.long(), routing_weights.float())
             else:
-                raw = output[0]
-                if not (isinstance(raw, torch.Tensor) and raw.dim() == 2
-                        and raw.shape[-1] == _num_experts):
+                raw_logits = output[0]
+                if not (isinstance(raw_logits, torch.Tensor) and raw_logits.dim() == 2
+                        and raw_logits.shape[-1] == _num_experts):
                     return
-                weight_mat = torch.softmax(raw.float(), dim=-1)
+                weight_mat = torch.softmax(raw_logits.float(), dim=-1)
 
         # 2-tuple or other: try softmax of first element
         elif isinstance(output, (tuple, list)) and len(output) >= 1:
-            raw = output[0]
-            if not (isinstance(raw, torch.Tensor) and raw.dim() == 2
-                    and raw.shape[-1] == _num_experts):
+            raw_logits = output[0]
+            if not (isinstance(raw_logits, torch.Tensor) and raw_logits.dim() == 2
+                    and raw_logits.shape[-1] == _num_experts):
                 return
-            weight_mat = torch.softmax(raw.float(), dim=-1)
+            weight_mat = torch.softmax(raw_logits.float(), dim=-1)
 
         else:
             return
@@ -253,19 +253,19 @@ def _make_router_hook(layer_idx: int):
 
 def _find_decoder_layers(model, num_layers: int):
     for path in ("model.layers", "model.model.layers"):
-        obj = model
+        candidate = model
         try:
             for attr in path.split("."):
-                obj = getattr(obj, attr)
-            if hasattr(obj, "__len__") and len(obj) == num_layers:
-                return obj
+                candidate = getattr(candidate, attr)
+            if hasattr(candidate, "__len__") and len(candidate) == num_layers:
+                return candidate
         except AttributeError:
             continue
-    for _, mod in model.named_modules():
-        if hasattr(mod, "__len__"):
+    for _, module in model.named_modules():
+        if hasattr(module, "__len__"):
             try:
-                if len(mod) == num_layers and hasattr(mod[0], "mlp"):
-                    return mod
+                if len(module) == num_layers and hasattr(module[0], "mlp"):
+                    return module
             except (TypeError, IndexError):
                 continue
     raise RuntimeError("Cannot locate decoder layer list in model.")
@@ -278,15 +278,15 @@ def register_router_hooks(model, meta: dict) -> list:
     hooks = []
     for layer_idx, layer in enumerate(decoder_layers):
         if hasattr(layer, "mlp") and hasattr(layer.mlp, "gate"):
-            h = layer.mlp.gate.register_forward_hook(_make_router_hook(layer_idx))
-            hooks.append(h)
+            hook = layer.mlp.gate.register_forward_hook(_make_router_hook(layer_idx))
+            hooks.append(hook)
     print(f"Registered {len(hooks)} router hooks.")
     return hooks
 
 
 def remove_hooks(hooks: list):
-    for h in hooks:
-        h.remove()
+    for hook in hooks:
+        hook.remove()
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -299,9 +299,9 @@ def _detect_image_token_id(processor) -> int:
         return processor.image_token_id
     # Try common token names
     for name in ("<|image_pad|>", "<image>", "<img>", "[IMG]", "<|vision_pad|>"):
-        tid = processor.tokenizer.convert_tokens_to_ids(name)
-        if tid != processor.tokenizer.unk_token_id:
-            return tid
+        token_id = processor.tokenizer.convert_tokens_to_ids(name)
+        if token_id != processor.tokenizer.unk_token_id:
+            return token_id
     raise RuntimeError(
         "Could not auto-detect image token ID. "
         "Set it manually via IMG_TOKEN_ID at the top of this file."
@@ -321,7 +321,6 @@ def run_inference_and_extract(model, processor, df: pd.DataFrame,
       • Run model(**inputs) - a single prefill-only forward pass.
       • Read router activations from hooks, filtered to image-pad token positions.
       • Decode the answer from next-token logits (MCQ: argmax over A–E).
-      • Persist everything to results.json.
 
     Returns a list of result dicts.
     """
@@ -391,8 +390,8 @@ def run_inference_and_extract(model, processor, df: pd.DataFrame,
                 for layer_idx in range(num_layers)
             }
 
-        except Exception as exc:
-            pred          = f"ERROR: {exc}"
+        except Exception as error:
+            pred          = f"ERROR: {error}"
             correct       = False
             num_vis_toks  = 0
             visual_routing = {str(layer_idx): [0.0] * num_experts for layer_idx in range(num_layers)}
@@ -414,24 +413,27 @@ def run_inference_and_extract(model, processor, df: pd.DataFrame,
         torch.cuda.empty_cache()
 
     remove_hooks(hooks)
+    return results
 
-    # ── Save ─────────────────────────────────────────────────────────────────
-    with open(RESULTS_JSON, "w") as f:
-        json.dump(results, f)
-    print(f"\nSaved {len(results)} records → {RESULTS_JSON}")
 
-    # ── Accuracy summary ─────────────────────────────────────────────────────
-    res_df  = pd.DataFrame([{"category": r["category"], "correct": r["correct"]}
-                             for r in results])
+def save_results(results: list[dict], path: Path):
+    """Persist the raw per-question inference results to JSON."""
+    with open(path, "w") as results_file:
+        json.dump(results, results_file)
+    print(f"\nSaved {len(results)} records → {path}")
+
+
+def print_accuracy_summary(results: list[dict]):
+    """Print overall and per-category accuracy for a set of results."""
+    res_df  = pd.DataFrame([{"category": record["category"], "correct": record["correct"]}
+                             for record in results])
     overall = res_df["correct"].mean()
     print(f"Overall accuracy: {overall:.1%}")
     for cat in LITE_CATEGORIES:
-        sub = res_df[res_df["category"] == cat]
-        if len(sub):
-            print(f"  {cat:16s}: {sub['correct'].mean():.1%}  "
-                  f"({int(sub['correct'].sum())}/{len(sub)})")
-
-    return results
+        category_df = res_df[res_df["category"] == cat]
+        if len(category_df):
+            print(f"  {cat:16s}: {category_df['correct'].mean():.1%}  "
+                  f"({int(category_df['correct'].sum())}/{len(category_df)})")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -452,11 +454,11 @@ def compute_category_heatmaps(results: list[dict], meta: dict) -> dict[str, np.n
     sums   = defaultdict(lambda: np.zeros((num_layers, num_experts), dtype=np.float64))
     counts = defaultdict(int)
 
-    for r in results:
-        cat = r["category"]
+    for record in results:
+        cat = record["category"]
         counts[cat] += 1
-        for li_str, weights in r["visual_routing"].items():
-            sums[cat][int(li_str)] += np.asarray(weights, dtype=np.float64)
+        for layer_idx_str, weights in record["visual_routing"].items():
+            sums[cat][int(layer_idx_str)] += np.asarray(weights, dtype=np.float64)
 
     heatmaps: dict[str, np.ndarray] = {}
     for cat in LITE_CATEGORIES:
@@ -470,15 +472,15 @@ def compute_category_heatmaps(results: list[dict], meta: dict) -> dict[str, np.n
             index   = [f"layer_{layer_idx}" for layer_idx in range(num_layers)],
             columns = [f"expert_{expert_idx}" for expert_idx in range(num_experts)],
         )
-        path = OUTPUT_DIR / f"heatmap_{cat}.csv"
-        df_hm.to_csv(path)
-        print(f"  Heatmap [{cat}] → {path}")
+        heatmap_path = OUTPUT_DIR / f"heatmap_{cat}.csv"
+        df_hm.to_csv(heatmap_path)
+        print(f"  Heatmap [{cat}] → {heatmap_path}")
 
     # Height vs Rotation difference highlights category-specific experts
     if "height" in heatmaps and "rotation" in heatmaps:
-        diff = heatmaps["height"] - heatmaps["rotation"]
+        height_minus_rotation = heatmaps["height"] - heatmaps["rotation"]
         pd.DataFrame(
-            diff,
+            height_minus_rotation,
             index   = [f"layer_{layer_idx}" for layer_idx in range(num_layers)],
             columns = [f"expert_{expert_idx}" for expert_idx in range(num_experts)],
         ).to_csv(OUTPUT_DIR / "heatmap_height_minus_rotation.csv")
@@ -501,7 +503,7 @@ def rank_experts_by_accuracy(results: list[dict], meta: dict) -> pd.DataFrame:
         delta_<category>          – same but restricted to each category
                                     (critical for diagnosing Ordering failures)
 
-    Saves expert_success_rates.csv sorted by success_delta descending.
+    Returns a DataFrame sorted by success_delta descending.
     """
     num_layers, num_experts = meta["num_layers"], meta["num_experts"]
 
@@ -515,18 +517,18 @@ def rank_experts_by_accuracy(results: list[dict], meta: dict) -> pd.DataFrame:
     category_count_correct   = defaultdict(int)
     category_count_incorrect   = defaultdict(int)
 
-    for r in results:
-        correct = r["correct"]
-        cat     = r["category"]
-        for li_str, weights in r["visual_routing"].items():
-            arr      = np.asarray(weights, dtype=np.float64)
-            layer_idx = int(li_str)
+    for record in results:
+        correct = record["correct"]
+        cat     = record["category"]
+        for layer_idx_str, weights in record["visual_routing"].items():
+            activation_weights = np.asarray(weights, dtype=np.float64)
+            layer_idx = int(layer_idx_str)
             if correct:
-                activation_correct[layer_idx]          += arr
-                category_activation_correct[cat][layer_idx] += arr
+                activation_correct[layer_idx]          += activation_weights
+                category_activation_correct[cat][layer_idx] += activation_weights
             else:
-                activation_incorrect[layer_idx]          += arr
-                category_activation_incorrect[cat][layer_idx] += arr
+                activation_incorrect[layer_idx]          += activation_weights
+                category_activation_incorrect[cat][layer_idx] += activation_weights
         if correct:
             count_correct += 1
             category_count_correct[cat] += 1
@@ -540,7 +542,7 @@ def rank_experts_by_accuracy(results: list[dict], meta: dict) -> pd.DataFrame:
     records = []
     for layer_idx in range(num_layers):
         for expert_idx in range(num_experts):
-            rec = {
+            expert_record = {
                 "layer":                     layer_idx,
                 "expert":                    expert_idx,
                 "expert_label":              f"L{layer_idx}_E{expert_idx}",
@@ -554,10 +556,15 @@ def rank_experts_by_accuracy(results: list[dict], meta: dict) -> pd.DataFrame:
                 num_incorrect   = category_count_incorrect[cat]
                 correct_mean = (category_activation_correct[cat][layer_idx, expert_idx] / num_correct) if num_correct > 0 else 0.0
                 incorrect_mean = (category_activation_incorrect[cat][layer_idx, expert_idx] / num_incorrect) if num_incorrect > 0 else 0.0
-                rec[f"delta_{cat}"] = correct_mean - incorrect_mean
-            records.append(rec)
+                expert_record[f"delta_{cat}"] = correct_mean - incorrect_mean
+            records.append(expert_record)
 
     df_rank = pd.DataFrame(records).sort_values("success_delta", ascending=False)
+    return df_rank
+
+
+def save_and_report_expert_ranking(df_rank: pd.DataFrame):
+    """Save the expert ranking to CSV and print the global and ordering-specific top-10s."""
     df_rank.to_csv(EXPERT_RANK_CSV, index=False)
     print(f"\nExpert ranking → {EXPERT_RANK_CSV}")
     print("\nTop-10 by global success_delta:")
@@ -567,11 +574,9 @@ def rank_experts_by_accuracy(results: list[dict], meta: dict) -> pd.DataFrame:
 
     # Also print ordering-specific ranking (diagnose 0% ordering accuracy)
     print("\nTop-10 by delta_ordering (experts most active on correct ordering answers):")
-    ord_top = df_rank.nlargest(10, "delta_ordering") if "delta_ordering" in df_rank.columns else df_rank.head(10)
-    print(ord_top[["expert_label", "delta_ordering",
+    ordering_top = df_rank.nlargest(10, "delta_ordering") if "delta_ordering" in df_rank.columns else df_rank.head(10)
+    print(ordering_top[["expert_label", "delta_ordering",
                    "mean_activation_correct"]].to_string(index=False))
-
-    return df_rank
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -597,14 +602,14 @@ def find_spatial_experts(df_rank: pd.DataFrame, meta: dict) -> pd.DataFrame:
     board.index       = range(1, len(board) + 1)
     board.index.name  = "rank"
 
-    top = board.head(LEADERBOARD_TOP_N)
-    top.to_csv(LEADERBOARD_CSV)
+    top_experts = board.head(LEADERBOARD_TOP_N)
+    top_experts.to_csv(LEADERBOARD_CSV)
 
     print(f"\n{'='*66}")
     print(f"  TOP-{LEADERBOARD_TOP_N} SPATIAL REASONING EXPERTS  "
           f"(activation ≥ {MIN_ACTIVATION_CORRECT}, Δ ≥ {MIN_SUCCESS_DELTA})")
     print(f"{'='*66}")
-    print(top[["expert_label", "mean_activation_correct",
+    print(top_experts[["expert_label", "mean_activation_correct",
                "mean_activation_incorrect", "success_delta"]].to_string())
 
     # ── Per-category specialists ──────────────────────────────────────────────
@@ -612,12 +617,12 @@ def find_spatial_experts(df_rank: pd.DataFrame, meta: dict) -> pd.DataFrame:
     print("  CATEGORY SPECIALISTS  (top-10 per category by delta_<cat>)")
     print(f"{'─'*66}")
     for cat in LITE_CATEGORIES:
-        col = f"delta_{cat}"
-        if col not in df_rank.columns:
+        delta_col = f"delta_{cat}"
+        if delta_col not in df_rank.columns:
             continue
         specialists = (
             df_rank[df_rank["mean_activation_correct"] >= MIN_ACTIVATION_CORRECT]
-            .nlargest(10, col)[["expert_label", "mean_activation_correct", col]]
+            .nlargest(10, delta_col)[["expert_label", "mean_activation_correct", delta_col]]
         )
         print(f"\n  [{cat.upper()}]")
         print(specialists.to_string(index=False))
@@ -659,10 +664,12 @@ if __name__ == "__main__":
     print("\n── Step 1: Inference + router extraction ──────────────────────────")
     if RESULTS_JSON.exists():
         print(f"Found existing {RESULTS_JSON} - loading (delete to re-run inference).")
-        with open(RESULTS_JSON) as f:
-            results = json.load(f)
+        with open(RESULTS_JSON) as results_file:
+            results = json.load(results_file)
     else:
         results = run_inference_and_extract(model, processor, df, meta)
+        save_results(results, RESULTS_JSON)
+        print_accuracy_summary(results)
 
     # Free VRAM - Steps 2-4 are CPU/numpy only
     del model, processor
@@ -676,6 +683,7 @@ if __name__ == "__main__":
     # ── Step 3: expert accuracy ranking ──────────────────────────────────────
     print("\n── Step 3: Expert accuracy ranking ────────────────────────────────")
     df_rank = rank_experts_by_accuracy(results, meta)
+    save_and_report_expert_ranking(df_rank)
 
     # ── Step 4: leaderboard ──────────────────────────────────────────────────
     print("\n── Step 4: Spatial expert leaderboard ─────────────────────────────")
