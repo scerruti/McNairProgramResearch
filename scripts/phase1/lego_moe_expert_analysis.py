@@ -1,18 +1,8 @@
 """
 Qwen3-VL-30B-A3B MoE Expert Activation Analysis on LEGOLite
 ============================================================
-Designed for Google Colab with NVIDIA G4 Blackwell GPU (96GB VRAM).
-
-Runs the model locally on the LEGOLite benchmark (height, position, rotation,
-ordering) and captures which of the 128 MoE experts activate for each question.
-Exports per-question expert frequency maps as JSON grouped by spatial category.
-
-Model architecture (from config.json):
-  - 48 decoder layers, all with MoE blocks (decoder_sparse_step=1)
-  - 128 experts per layer, 8 active per token (num_experts_per_tok=8)
-  - Router: Qwen3VLMoeTextTopKRouter accessed via layer.mlp.gate
+(Modified to record per-token expert activations and produce image/text-separated counts)
 """
-
 import os
 import json
 import string
@@ -31,12 +21,10 @@ LEGO_TSV_URL = "https://opencompass.openxlab.space/utils/VLMEval/LEGO.tsv"
 DATA_DIR = "/content/lego_data"
 IMG_DIR = "/content/lego_images"
 
-# ── Load model ────────────────────────────────────────────────────────────────
-
 try:
     import flash_attn
     attn_impl = "flash_attention_2"
-except ImportError:
+except Exception:
     attn_impl = "sdpa"
 
 print(f"Loading {MODEL_ID} (attn: {attn_impl})...")
@@ -56,20 +44,59 @@ TOP_K = text_config.num_experts_per_tok
 print(f"Loaded. Layers={NUM_LAYERS}, Experts={NUM_EXPERTS}, Top-K={TOP_K}")
 
 # ── Hook infrastructure ──────────────────────────────────────────────────────
-
-expert_log = defaultdict(lambda: Counter())
+# expert_log stores per-question+layer data:
+# expert_log[(q_id, layer_idx)] = {"per_token": defaultdict(Counter), "global": Counter()}
+expert_log = defaultdict(lambda: {"per_token": defaultdict(Counter), "global": Counter()})
 current_question_id = None
 hooks = []
 
-
 def make_router_hook(layer_idx):
     def hook_fn(module, input, output):
-        _, _, router_indices = output
-        indices = router_indices.detach().cpu().flatten().tolist()
-        key = (current_question_id, layer_idx)
-        expert_log[key].update(indices)
-    return hook_fn
+        """
+        The router/gate forward may return a tuple where router indices are the third element,
+        or may return the indices directly. We attempt to extract a tensor of selected expert
+        indices aligned to token positions. The tensor shape may vary by implementation,
+        so this hook handles common shapes (batch, seq, topk) and (batch, topk).
+        """
+        # Extract router_indices robustly
+        router_indices = None
+        if isinstance(output, (tuple, list)) and len(output) >= 3:
+            router_indices = output[2]
+        else:
+            router_indices = output
 
+        if router_indices is None:
+            return
+
+        try:
+            ri = router_indices.detach().cpu()
+        except Exception:
+            return
+
+        # ri might be e.g. (batch, seq_len, topk)
+        if ri.ndim == 3:
+            batch, seq_len, topk = ri.shape
+            for b in range(batch):
+                for t in range(seq_len):
+                    vals = ri[b, t]
+                    # filter negative/sentinel values if present
+                    experts = [int(x) for x in vals.flatten().tolist() if int(x) >= 0]
+                    if experts:
+                        expert_log[(current_question_id, layer_idx)]["per_token"][t].update(experts)
+                        expert_log[(current_question_id, layer_idx)]["global"].update(experts)
+        elif ri.ndim == 2:
+            # shape (batch, topk) or (batch, seq_len) - fallback to flatten per-batch
+            batch, k = ri.shape
+            for b in range(batch):
+                experts = [int(x) for x in ri[b].flatten().tolist() if int(x) >= 0]
+                if experts:
+                    # we don't have token positions here; aggregate globally
+                    expert_log[(current_question_id, layer_idx)]["global"].update(experts)
+        else:
+            # unknown shape: fallback to global flatten
+            indices = [int(x) for x in ri.flatten().tolist() if int(x) >= 0]
+            expert_log[(current_question_id, layer_idx)]["global"].update(indices)
+    return hook_fn
 
 def find_decoder_layers():
     for attr_path in ["model.layers", "model.model.layers"]:
@@ -90,9 +117,7 @@ def find_decoder_layers():
                 continue
     raise RuntimeError("Could not find decoder layers.")
 
-
 decoder_layers = find_decoder_layers()
-
 
 def register_hooks():
     global hooks
@@ -103,16 +128,16 @@ def register_hooks():
             hooks.append(hook)
     print(f"Registered {len(hooks)} router hooks.")
 
-
 def remove_hooks():
     global hooks
     for h in hooks:
-        h.remove()
+        try:
+            h.remove()
+        except Exception:
+            pass
     hooks = []
 
-
-# ── Load dataset ──────────────────────────────────────────────────────────────
-
+# ── Dataset loading ───────────────────────────────────────────────────────────
 os.makedirs(DATA_DIR, exist_ok=True)
 os.makedirs(IMG_DIR, exist_ok=True)
 
@@ -128,7 +153,6 @@ df_lite = df_full.reset_index(drop=True)
 print(f"\nLEGO: {len(df_lite)} questions")
 
 full_index_map = {str(row["index"]): row for _, row in df_full.iterrows()}
-
 
 def save_image_for_row(row):
     idx = str(row["index"])
@@ -159,13 +183,11 @@ def save_image_for_row(row):
     except Exception:
         return []
 
-
 image_path_map = {}
 for row_idx in range(len(df_lite)):
     row = df_lite.iloc[row_idx]
     idx = str(row["index"])
     image_path_map[idx] = save_image_for_row(row)
-
 
 def build_messages(row):
     idx = str(row["index"])
@@ -194,9 +216,17 @@ def build_messages(row):
     content.append({"type": "text", "text": prompt})
     return [{"role": "user", "content": content}]
 
+# helper: find subsequence
+def find_subsequence(full, sub):
+    if not sub or not full:
+        return -1
+    n, m = len(full), len(sub)
+    for i in range(n - m + 1):
+        if full[i:i+m] == sub:
+            return i
+    return -1
 
-# ── Run inference ─────────────────────────────────────────────────────────────
-
+# ── Run inference ────────────────────────────────────────────────────────────
 if hasattr(model, 'device') and model.device.type != 'meta':
     input_device = model.device
 else:
@@ -215,6 +245,7 @@ for row_idx in tqdm(range(len(df_lite)), desc="LEGO"):
 
     try:
         messages = build_messages(row)
+        # full inputs (image + text)
         inputs = processor.apply_chat_template(
             messages,
             tokenize=True,
@@ -223,6 +254,17 @@ for row_idx in tqdm(range(len(df_lite)), desc="LEGO"):
             return_tensors="pt",
         ).to(input_device)
 
+        # text-only inputs for token position alignment
+        text_only = [{"role": "user", "content": [{"type": "text", "text": messages[0]["content"][-1]["text"]}]}]
+        text_inputs = processor.apply_chat_template(
+            text_only,
+            tokenize=True,
+            add_generation_prompt=True,
+            return_dict=True,
+            return_tensors="pt",
+        ).to(input_device)
+
+        # generate
         with torch.no_grad():
             output_ids = model.generate(**inputs, max_new_tokens=64)
 
@@ -233,23 +275,70 @@ for row_idx in tqdm(range(len(df_lite)), desc="LEGO"):
     except Exception as error:
         prediction = f"ERROR: {error}"
 
+    # Build token modality mapping: find where text token sequence occurs inside the full input sequence
+    image_token_positions = set()
+    text_token_positions = set()
+    try:
+        full_ids = inputs["input_ids"][0].detach().cpu().tolist()
+        text_ids = text_inputs["input_ids"][0].detach().cpu().tolist()
+        start = find_subsequence(full_ids, text_ids)
+        if start != -1:
+            text_token_positions = set(range(start, start + len(text_ids)))
+            image_token_positions = set(range(len(full_ids))) - text_token_positions
+        else:
+            # fallback heuristic: if processor gives patch tokens separately, try to use attention_mask or other keys
+            # default: mark all tokens as text (safe fallback)
+            text_token_positions = set(range(len(full_ids)))
+            image_token_positions = set()
+    except Exception:
+        # if anything goes wrong, fallback to previous behaviour (global-only)
+        text_token_positions = set()
+        image_token_positions = set()
+
+    # Aggregate expert activations
+    question_expert_freq_image = Counter()
+    question_expert_freq_text = Counter()
     question_expert_freq = Counter()
     per_layer = {}
+
     for layer_idx in range(NUM_LAYERS):
         key = (q_id, layer_idx)
         if key in expert_log:
-            question_expert_freq.update(expert_log[key])
-            per_layer[str(layer_idx)] = dict(expert_log[key])
+            layer_data = expert_log[key]
+            # per_token is dict[token_pos] -> Counter
+            per_token = layer_data.get("per_token", {})
+            layer_token_map = {}
+            for token_pos, c in per_token.items():
+                layer_token_map[str(token_pos)] = dict(c)
+                if token_pos in text_token_positions:
+                    question_expert_freq_text.update(c)
+                else:
+                    # if we couldn't detect text positions, this will be considered image by default
+                    question_expert_freq_image.update(c)
+            # also include global counters as fallback
+            global_counter = layer_data.get("global", Counter())
+            for expert_id, cnt in global_counter.items():
+                question_expert_freq.update({expert_id: cnt})
+            # store per-layer token map
+            per_layer[str(layer_idx)] = layer_token_map
+
+    # combine: if per-token mapping gave counts, prefer those; else use global
+    # build final combined counters (prefer token-level counts)
+    final_image_freq = question_expert_freq_image if sum(question_expert_freq_image.values()) > 0 else question_expert_freq
+    final_text_freq = question_expert_freq_text if sum(question_expert_freq_text.values()) > 0 else Counter()
 
     is_correct = prediction.strip().upper().startswith(answer_gt.strip().upper())
 
+    # Build all_expert_data entry with explicit modality-separated counts
     all_expert_data[q_id] = {
         "question_id": q_id,
         "category": category,
         "prediction": prediction,
         "ground_truth": answer_gt,
         "correct": is_correct,
-        "expert_frequency": {str(expert_id): count for expert_id, count in question_expert_freq.items()},
+        "expert_frequency": {str(expert_id): int(count) for expert_id, count in (question_expert_freq.items() or {}).items()},
+        "image_expert_frequency": {str(expert_id): int(count) for expert_id, count in final_image_freq.items()},
+        "text_expert_frequency": {str(expert_id): int(count) for expert_id, count in final_text_freq.items()},
         "per_layer_experts": per_layer,
     }
     results.append({
@@ -257,7 +346,8 @@ for row_idx in tqdm(range(len(df_lite)), desc="LEGO"):
         "prediction": prediction, "ground_truth": answer_gt, "correct": is_correct,
     })
 
-    for log_key in [log_key for log_key in expert_log if log_key[0] == q_id]:
+    # cleanup per-question logs to limit memory
+    for log_key in [log_key for log_key in list(expert_log.keys()) if log_key[0] == q_id]:
         del expert_log[log_key]
     torch.cuda.empty_cache()
 
@@ -284,8 +374,8 @@ for cat in LITE_CATEGORIES:
     top_experts = freq.most_common(15)
     category_summary[cat] = {
         "top_15_experts": [{"expert_id": expert_id, "activation_count": count} for expert_id, count in top_experts],
-        "total_activations": sum(freq.values()),
-        "unique_experts_used": len(freq),
+        "total_activations": int(sum(freq.values())),
+        "unique_experts_used": int(len(freq)),
     }
 
 analysis_report = {
