@@ -15,8 +15,16 @@ venv/
 
 # Secrets
 .env
+.env.*
 *.key
+*.pem
+*.p12
 api.key
+*credentials*.json
+secrets.yaml
+secrets.yml
+.aws/
+.ssh/
 
 # Large data files
 .cache/
@@ -29,9 +37,9 @@ api.key
 
 
 # LEGO outputs (regenerated per run)
-LEGO Code/LEGO-Puzzles/outputs/
-LEGO Code/.cache/
-LEGO Code/LEGO-Puzzles/vlmeval.egg-info/
+code/LEGO-Puzzles/outputs/
+code/.cache/
+code/LEGO-Puzzles/vlmeval.egg-info/
 
 # LEGO benchmark images (downloaded on pod, too large for git)
 scripts/phase3/step5/data/
